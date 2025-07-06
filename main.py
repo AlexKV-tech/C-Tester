@@ -56,6 +56,6 @@ def get_ctest_form(request: Request, test_id: str):
     return templates.TemplateResponse("ctest_form.html", {
         "request": request,
         "test_id": test_id,
-        "ctest_items": test["ctest_items"],
+        "ctest_text": test["ctest_items"],
     })
 

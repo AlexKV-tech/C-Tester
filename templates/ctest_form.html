@@ -36,6 +36,12 @@
 <body>
     <div class="container py-5">
         <h1 class="mb-4">Füllen Sie den C-Test aus</h1>
+        <div id="outputText" class="output-section">
+            {{ ctest_text | safe }}
+        </div>
+
+        <!-- optional -->
+        <input type="hidden" id="testId" value="{{ test_id }}">
 
         <form method="POST" action="/submit/{{ test_id }}">
             <div class="mb-4">
