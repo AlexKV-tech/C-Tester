@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>C-Test ausfüllen</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1F1B24;
+            color: #fff;
+            font-family: ui-monospace, 'Courier New', monospace;
+        }
+
+        .ctest-word {
+            margin-right: 0.5rem;
+        }
+
+        input.ctest-input {
+            width: 100px;
+            background-color: #2d2834;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        input.ctest-input:focus {
+            outline: none;
+            border-color: #6c757d;
+            box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-5">
+        <h1 class="mb-4">Füllen Sie den C-Test aus</h1>
+
+        <form method="POST" action="/submit/{{ test_id }}">
+            <div class="mb-4">
+                <p>
+                    {% for item in ctest_items %}
+                    <span class="ctest-word">
+                        {% if item.is_gap %}
+                        {{ item.prefix }}
+                        <input type="text" name="gap_{{ loop.index0 }}" class="ctest-input" required>
+                        {% else %}
+                        {{ item.text }}
+                        {% endif %}
+                    </span>
+                    {% endfor %}
+                </p>
+            </div>
+
+            <input type="hidden" name="test_id" value="{{ test_id }}">
+            <button type="submit" class="btn btn-primary btn-lg">Absenden</button>
+        </form>
+    </div>
+</body>
+
+</html>

@@ -12,6 +12,12 @@ async function generateCTest() {
     });
 
     const data = await response.json();
+    const fullLink = window.location.origin + data.link;
+    const linkContainer = document.getElementById("generatedLink");
+    const testLink = document.getElementById("testLink");
+    testLink.href = fullLink;
+    testLink.textContent = fullLink;
+    linkContainer.style.display = "block";
     document.getElementById("outputText").textContent = data.ctest;
 
 }
