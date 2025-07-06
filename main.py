@@ -9,6 +9,7 @@ from ctest_gen import generate_ctest
 
 class TextInput(BaseModel):
     text:str
+    difficulty:str
 
 app = FastAPI()
 app.add_middleware(
@@ -27,9 +28,10 @@ def serve_home(request: Request):
 @app.post("/generate")
 def generate(input: TextInput):
     try:
-        output = generate_ctest(input.text)
+        output = generate_ctest(input.text, input.difficulty)
         return {"ctest": output}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    
 
