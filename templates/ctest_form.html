@@ -5,57 +5,7 @@
     <meta charset="UTF-8">
     <title>C-Test ausfüllen</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #1F1B24;
-            color: #fff;
-            font-family: ui-monospace, 'Courier New', monospace;
-        }
-
-        .ctest-word {
-            margin-right: 0.5rem;
-        }
-
-        input.ctest-input {
-            width: 100px;
-            background-color: #2d2834;
-            border: 1px solid #555;
-            color: #fff;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-        }
-
-        input.ctest-input:focus {
-            outline: none;
-            border-color: #6c757d;
-            box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
-        }
-
-        .blank-box {
-            width: 1.5em;
-            text-align: center;
-            border: none;
-            border-bottom: 1px solid #999;
-            margin: 0 1px;
-            background-color: transparent;
-            color: inherit;
-            font-family: inherit;
-        }
-
-        .blank-box:focus {
-            outline: none;
-            border-bottom: 2px solid #555;
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .alert {
-            margin-top: 1rem;
-        }
-    </style>
+    <link href="{{ url_for('static', path='/styles/ctest_form_style.css') }}" rel="stylesheet">
 </head>
 
 <body>
@@ -68,137 +18,20 @@
         <div id="responseMessage"></div>
     </div>
 
-    <script>
-        const ctestText = {{ ctest_text | tojson | safe }};
-        const blanksMap = {{ blanks| tojson | safe}};
-
-        const testId = "{{ test_id }}";
-
-        function renderCTest(text) {
-            const container = document.getElementById('ctestContainer');
-            container.innerHTML = '';
-            const inputs = [];
-            let blankIndex = 0;
-            let i = 0;
-
-            console.log(blanksMap);
-            while (i < text.length) {
-                const char = text[i];
-                if (char === '_') {
-                    const blankLength = blanksMap[blankIndex];
-                    const nextWordIndex = i + blankLength;
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.name = `blank_${blankIndex}`;
-                    input.maxLength = blankLength;
-                    input.className = 'blank-box';
-                    input.dataset.blankIndex = blankIndex;
-                    input.style.width = `${Math.max(blankLength * 0.8, 2)}em`;
-                    input.addEventListener('input', function () {
-                        if (input.value.length === input.maxLength) {
-                            const currentIndex = inputs.indexOf(input);
-                            if (currentIndex < inputs.length - 1) {
-                                inputs[currentIndex + 1].focus();
-                            }
-                        }
-                    });
-                    container.appendChild(input);
-                    inputs.push(input);
-                    blankIndex++;
-                    i = nextWordIndex;
-                } else {
-                    container.appendChild(document.createTextNode(char));
-                    i++;
-                }
-            }
-        }
-
-        function collectUserInput() {
-            const inputs = document.querySelectorAll('#ctestContainer input');
-            const userAnswers = {};
-            inputs.forEach(input => {
-                const blankIndex = parseInt(input.dataset.blankIndex);
-                userAnswers[blankIndex] = input.value;
-            });
-            return userAnswers;
-        }
-
-        function showMessage(message, type = 'info') {
-            const messageDiv = document.getElementById('responseMessage');
-            messageDiv.innerHTML = `
-                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-        }
-        function submitAnswers(event) {
-            event.preventDefault();
-
-            const answers = collectUserInput();
-            const submitBtn = document.getElementById('submitBtn');
-            const form = document.getElementById('ctestForm');
-
-
-            submitBtn.textContent = 'Wird gesendet...';
-            submitBtn.disabled = true;
-            form.classList.add('loading');
-
-
-            fetch('/submit-ctest', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    test_id: testId,
-                    answers: answers,
-                    original_text: ctestText
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Success:', data);
-
-                    if (data.status === 'success') {
-                        showMessage('C-Test erfolgreich abgesendet!', 'success');
-
-                        // Show results if available
-                        if (data.score) {
-                            showMessage(
-                                `Ergebnis: ${data.score.correct}/${data.score.total} richtig (${data.score.percentage.toFixed(1)}%)`,
-                                'info'
-                            );
-                        }
-
-                        // Redirect to results page after delay
-                        setTimeout(() => {
-                            window.location.href = `/results/${testId}`;
-                        }, 2000);
-                    } else {
-                        showMessage('Fehler beim Absenden: ' + (data.message || 'Unbekannter Fehler'), 'danger');
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                    showMessage('Fehler beim Absenden. Bitte versuchen Sie es erneut.', 'danger');
-                })
-                .finally(() => {
-                    // Reset loading state
-                    submitBtn.textContent = 'Absenden';
-                    submitBtn.disabled = false;
-                    form.classList.remove('loading');
-                });
-        }
-
-        // Initialize
-        renderCTest(ctestText);
-
-        // Add event listener to form
-        document.getElementById('ctestForm').addEventListener('submit', submitAnswers);
-    </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+
+    <script>
+
+        window.ctestText = {{ ctest_text | tojson | safe }};
+        window.blanksMap = {{ blanks | tojson | safe }};
+        window.testId = "{{ test_id }}";
+        /*var ctestText = window.ctestText;
+        var blanksMap = window.blanksMap;
+        var testId = window.testId;*/
+    </script>
+    <script src="{{ url_for('static', path='/scripts/ctest_form.js') }}"></script>
 </body>
 
 </html>

@@ -56,7 +56,7 @@ def generate(input: CTestTextInput):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/test/{test_id}", response_class=HTMLResponse)
-def get_ctest_form(request: Request, test_id: str):
+async def get_ctest_form(request: Request, test_id: str):
     test = TEST_DB.get(test_id)
     if not test or test["expires_at"] < datetime.utcnow():
         return templates.TemplateResponse("expired.html", {"request": request})
@@ -145,7 +145,7 @@ def calculate_score(answers, users_answers):
     }
 
 @app.get("/results/{test_id}", response_class=HTMLResponse)
-def get_results(request: Request, test_id: str):
+async def get_results(request: Request, test_id: str):
     test = TEST_DB.get(test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
