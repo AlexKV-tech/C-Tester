@@ -2,7 +2,7 @@ async function generateCTest() {
     const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
 
     const input = document.getElementById("inputText").value;
-    console.log(selectedDifficulty);
+
     const response = await fetch("/generate", {
         method: "POST",
         headers: {

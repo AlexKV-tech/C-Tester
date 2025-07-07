@@ -38,6 +38,7 @@ def serve_home(request: Request):
 @app.post("/generate")
 def generate(input: CTestTextInput):
     try:
+        
         output, answers = generate_ctest(input.text, input.difficulty)
         test_id = uuid.uuid4().hex[:8]
         created_at = datetime.utcnow()

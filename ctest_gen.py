@@ -15,6 +15,7 @@ def generate_ctest(text: str, difficulty: str, target_pos=LANGUAGE_PARTS, blanks
     if difficulty == "hard":
         blanks_per_sentence_coeff = HARD_BLANKS_PER_SENTENCE_COEFF
     elif difficulty == "easy":
+        print(difficulty)
         blanks_per_sentence_coeff = EASY_BLANKS_PER_SENTENCE_COEFF
     nlp = spacy.load("de_core_news_sm")
     doc = nlp(text)
@@ -25,12 +26,13 @@ def generate_ctest(text: str, difficulty: str, target_pos=LANGUAGE_PARTS, blanks
     
     if len(sentences) < MINIMAL_TEXT_LENGTH:
         return "Der eingegebene Text ist zu kurz"
-    
     for sentence in sentences:
         blanked_sentence_words = 0
         word_count = len([word for word in sentence if word.pos_ in target_pos])
         for word in sentence:
-            if word.pos_ in target_pos and word.is_alpha and len(word) >= MINIMAL_WORD_LENGTH and word_count and blanked_sentence_words/word_count < blanks_per_sentence_coeff:
+            if word.pos_ in target_pos and word.is_alpha and\
+                  len(word) >= MINIMAL_WORD_LENGTH and word_count\
+                      and blanked_sentence_words/word_count < blanks_per_sentence_coeff:
                 start_word_idx = word.idx
                 end_word_idx = word.idx + len(word)
                 half_index = (start_word_idx + end_word_idx)//2
@@ -38,6 +40,7 @@ def generate_ctest(text: str, difficulty: str, target_pos=LANGUAGE_PARTS, blanks
                 ctest_text[half_index:end_word_idx] = list("_" * (end_word_idx - half_index))
                 answers[blanked_word_pos] = [answer, len(answer), start_word_idx, half_index, end_word_idx ]
                 blanked_word_pos += 1
+                blanked_sentence_words += 1
     return "".join(ctest_text), answers
                 
 
