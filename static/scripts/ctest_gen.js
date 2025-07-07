@@ -18,7 +18,7 @@ async function generateCTest() {
     testLink.href = fullLink;
     testLink.textContent = fullLink;
     linkContainer.style.display = "block";
-    document.getElementById("outputText").textContent = data.ctest;
+    document.getElementById("outputText").textContent = data.ctest_text;
 
 }
 

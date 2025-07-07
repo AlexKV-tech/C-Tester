@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>C-Test Ergebnisse</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container py-5">
+        <h1 class="mb-4">C-Test Ergebnisse</h1>
+
+        {% if submissions %}
+        {% for submission_id, submission in submissions.items() %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Submission {{ submission_id }}</h5>
+                <p><strong>Score:</strong> {{ submission.score.correct }}/{{ submission.score.total }} ({{
+                    submission.score.percentage|round(1) }}%)</p>
+                <p><strong>Submitted:</strong> {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p>No submissions yet.</p>
+        {% endif %}
+
+        <a href="/" class="btn btn-primary">Back to Home</a>
+    </div>
+</body>
+
+</html>

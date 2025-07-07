@@ -1,0 +1,49 @@
+body {
+    background-color: #1F1B24;
+    color: #fff;
+    font-family: ui-monospace, 'Courier New', monospace;
+}
+
+.ctest-word {
+    margin-right: 0.5rem;
+}
+
+input.ctest-input {
+    width: 100px;
+    background-color: #2d2834;
+    border: 1px solid #555;
+    color: #fff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+input.ctest-input:focus {
+    outline: none;
+    border-color: #6c757d;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+}
+
+.blank-box {
+    width: 1.5em;
+    text-align: center;
+    border: none;
+    border-bottom: 1px solid #999;
+    margin: 0 1px;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+}
+
+.blank-box:focus {
+    outline: none;
+    border-bottom: 2px solid #555;
+}
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.alert {
+    margin-top: 1rem;
+}
