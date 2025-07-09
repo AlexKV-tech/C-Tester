@@ -10,7 +10,6 @@
 <body>
     <div class="container py-5">
         <h1 class="mb-4">C-Test Ergebnisse</h1>
-
         {% if submissions %}
         {% for submission_id, submission in submissions.items() %}
         <div class="card mb-3">
@@ -25,7 +24,6 @@
         {% else %}
         <p>No submissions yet.</p>
         {% endif %}
-
         <a href="/" class="btn btn-primary">Back to Home</a>
     </div>
 </body>

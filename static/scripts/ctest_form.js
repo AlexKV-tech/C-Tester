@@ -6,10 +6,8 @@ function renderCTest(text) {
 
     const container = document.getElementById('ctestContainer');
     container.innerHTML = '';
-    const inputs = [];
     let blankIndex = 0;
     let i = 0;
-
     while (i < text.length) {
         const char = text[i];
         if (char === '_') {
@@ -22,17 +20,7 @@ function renderCTest(text) {
             input.className = 'blank-box';
             input.dataset.blankIndex = blankIndex;
             input.style.width = `${Math.max(blankLength * 0.8, 2)}em`;
-            /*
-            input.addEventListener('input', function () {
-                if (input.value.length === input.maxLength) {
-                    const currentIndex = inputs.indexOf(input);
-                    if (currentIndex < inputs.length - 1) {
-                        inputs[currentIndex + 1].focus();
-                    }
-                }
-            });*/
             container.appendChild(input);
-            inputs.push(input);
             blankIndex++;
             i = nextWordIndex;
         } else {
@@ -84,56 +72,40 @@ function submitAnswers(event) {
             original_text: ctestText
         })
     })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Success:', data);
+        .then(async (response) => {
+            const data = await response.json();
 
-            if (data.status === 'success') {
+
+            if (response.status === 200) {
                 showMessage('C-Test erfolgreich abgesendet!', 'success');
 
-                // Show results if available
                 if (data.score) {
                     showMessage(
                         `Ergebnis: ${data.score.correct}/${data.score.total} richtig (${data.score.percentage.toFixed(1)}%)`,
                         'info'
                     );
                 }
-
-                // Redirect to results page after delay
-                setTimeout(() => {
-                    window.location.href = `/results/${testId}`;
-                }, 2000);
             } else {
                 showMessage('Fehler beim Absenden: ' + (data.message || 'Unbekannter Fehler'), 'danger');
             }
         })
         .catch((error) => {
-            console.error('Error:', error);
+            console.log(error);
             showMessage('Fehler beim Absenden. Bitte versuchen Sie es erneut.', 'danger');
         })
         .finally(() => {
-            // Reset loading state
             submitBtn.textContent = 'Absenden';
             submitBtn.disabled = false;
             form.classList.remove('loading');
         });
+
 }
 
 
 function initializeCTest() {
-
-    if (typeof ctestText === 'undefined' || typeof blanksMap === 'undefined' || typeof testId === 'undefined') {
-        console.error('Required template variables are not defined:', {
-            ctestText: typeof ctestText,
-            blanksMap: typeof blanksMap,
-            testId: typeof testId
-        });
-        return;
-    }
-
     renderCTest(ctestText);
     document.getElementById('ctestForm').addEventListener('submit', submitAnswers);
 }
 
-// Initialize when DOM is loaded
+
 document.addEventListener('DOMContentLoaded', initializeCTest);

@@ -12,6 +12,16 @@ BLANK_SYMBOL = "_"
 
 
 def generate_ctest(text: str, difficulty: str, target_pos=LANGUAGE_PARTS, blanks_per_sentence_coeff=MEDIUM_BLANKS_PER_SENTENCE_COEFF) -> str:
+    """
+    Core function that generates CTest based on:
+        text -- string representantion of a text to be modified
+        difficulty -- string representantion of difficulty of generated C-Test(easy/medium/hard), which determines the coefficient of blanks per sentence
+        target_pos -- language parts that are allowed to be modified for C-Test
+        blanks_per_sentence_coeff -- coefficient that is determined by dificulty(see constants for easy/medium/hard difficulties)
+    Returned values:
+        ctest_text -- generated C-Test of type str
+        answers -- dictionary in form blanked_index:[{missed part}, {length of missed part}, {start of blanked word}, {start of the blank within a word}, {end of blanked word}]
+    """
     if difficulty == "hard":
         blanks_per_sentence_coeff = HARD_BLANKS_PER_SENTENCE_COEFF
     elif difficulty == "easy":
@@ -41,7 +51,8 @@ def generate_ctest(text: str, difficulty: str, target_pos=LANGUAGE_PARTS, blanks
                 answers[blanked_word_pos] = [answer, len(answer), start_word_idx, half_index, end_word_idx ]
                 blanked_word_pos += 1
                 blanked_sentence_words += 1
-    return "".join(ctest_text), answers
+    ctest_text = "".join(ctest_text)
+    return ctest_text, answers
                 
 
 

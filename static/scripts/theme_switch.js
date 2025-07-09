@@ -1,7 +1,7 @@
 const toggleButton = document.getElementById("themeToggle");
 const themeIcon = document.getElementById("themeIcon");
 
-// Apply theme based on system preference or saved choice
+
 function applyTheme(theme) {
     const isLight = theme === "light";
 
@@ -13,7 +13,7 @@ function applyTheme(theme) {
     toggleButton.classList.toggle("btn-outline-dark", isLight);
 }
 
-// Determine initial theme
+
 const savedTheme = localStorage.getItem("theme");
 const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
 
@@ -23,7 +23,7 @@ if (savedTheme) {
     applyTheme(prefersLight ? "light" : "dark");
 }
 
-// Theme toggle button click
+
 toggleButton.addEventListener("click", () => {
     const isCurrentlyLight = document.body.classList.contains("light-mode");
     const newTheme = isCurrentlyLight ? "dark" : "light";

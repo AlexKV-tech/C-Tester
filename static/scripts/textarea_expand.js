@@ -1,6 +1,7 @@
 const text = document.getElementById('inputText');
-const clone = document.getElementById('inputClone');
+
 function syncClone() {
+    const clone = document.getElementById('inputClone');
     clone.style.width = getComputedStyle(text).width;
     clone.style.font = getComputedStyle(text).font;
     clone.style.padding = getComputedStyle(text).padding;
@@ -10,7 +11,6 @@ function syncClone() {
 
 text.addEventListener('input', function () {
     syncClone();
-
     const btn = document.getElementById('generateBtn');
     if (text.value.trim().length > 0) {
         btn.classList.remove('btn-outline-primary');

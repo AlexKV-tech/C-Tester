@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +21,7 @@ templates = Jinja2Templates(directory="templates")
 TEST_DB = {}
 
 class CTestTextInput(BaseModel):
-    text: str # blanked test
+    text: str # text to be modified
     difficulty: str # difficulty of ther test either easy, medium or hard
 
 class CTestSubmission(BaseModel):
@@ -33,17 +33,24 @@ class CTestSubmission(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def serve_home(request: Request):
+    """ 
+    Serve user to main page - generator of C-Tests
+    """
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/generate")
-def generate(input: CTestTextInput):
+async def generate(input: CTestTextInput):
+    """
+    Accept original text(input: CTestTextInput) and generate C-Test from it. 
+    Original text, generated C-Test, creation date, expiring data, answers and submission are written into database
+    """
     try:
-        
         output, answers = generate_ctest(input.text, input.difficulty)
         test_id = uuid.uuid4().hex[:8]
         created_at = datetime.utcnow()
         time_delta = timedelta(days=7) # time span after which the link for a created test will expire -> all information related to the test_id will be deleted from the DB
         expires_at = created_at + time_delta
+        # Write C-Test data into database
         TEST_DB[test_id] = {
             "ctest_text": output,
             "created_at": created_at,
@@ -54,13 +61,18 @@ def generate(input: CTestTextInput):
         }
         return {"ctest_text": output, "link": f"/test/{test_id}", "answers": answers}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return JSONResponse({"Unexpected error": str(e)}, 400)
 
 @app.get("/test/{test_id}", response_class=HTMLResponse)
 async def get_ctest_form(request: Request, test_id: str):
+    """
+    Accepts test_id: str -- id of the test
+    Returns either page noting expiration of 
+    the test(failure) or page rendered corresponding to the test_id(success)("blanks" helps rendering blanks in JS part)
+    """
     test = TEST_DB.get(test_id)
     if not test or test["expires_at"] < datetime.utcnow():
-        return templates.TemplateResponse("expired.html", {"request": request})
+        return templates.TemplateResponse("expired.html", {"request": request}, status_code=410)
 
     return templates.TemplateResponse("ctest_form.html", {
         "request": request,
@@ -71,6 +83,11 @@ async def get_ctest_form(request: Request, test_id: str):
 
 @app.post("/submit-ctest")
 async def submit_ctest(submission: CTestSubmission):
+    """
+    Receives user's C-Test submission, grades it, stores the submission data into database
+    Returns achieved score, total number of blanks, submission id and message indicating whther the request was successful
+    """
+
     # Fetch the test data(including answers, original text, etc.) related to the test id from the DB
     test = TEST_DB.get(submission.test_id)
     
@@ -80,7 +97,7 @@ async def submit_ctest(submission: CTestSubmission):
     if test["expires_at"] < datetime.utcnow():
         raise HTTPException(status_code=410, detail="Test has expired")
     
-    # Process the user's answers
+    
     users_answers = submission.answers
     original_text = submission.original_text
     answers = test["answers"]
@@ -90,34 +107,41 @@ async def submit_ctest(submission: CTestSubmission):
     print(f"Original text: {original_text}")
     print(f"Blanks dict: {answers}")
     
-    # Calculate score
+    
     score = calculate_score(answers, users_answers)
     
     # Store the submission results in the DB
     submission_id = uuid.uuid4().hex[:8]
     TEST_DB[submission.test_id]["submissions"] = TEST_DB[submission.test_id].get("submissions", {})
     TEST_DB[submission.test_id]["submissions"][submission_id] = {
+        
         "users_answers": users_answers,
         "score": score,
         "submitted_at": datetime.utcnow()
     }
     
-    return {
-        "status": "success",
+    return JSONResponse({
         "score": score,
         "total_blanks": len(users_answers),
         "submission_id": submission_id,
         "message": "Ihr C-Test wurde erfolgreich abgesendet"
-    }
+    }, status_code=200)
 
 def calculate_score(answers, users_answers):
+    """
+    Calculates achieved score comparing sample answers with user's answers
+    Returns number of correct answers, number of blanks in total, percentage 
+    of correct answers and map detailed_results, which for each word with missed part contains: 
+    user answer, expected anser, expected length of the answer, bool variable indicating whether 
+    the answer was correct
+    """
     correct_answers = 0
     total_blanks = len(users_answers)
     detailed_results = {}
     
-    # Compare user's answers with correct answers
+
     for position, users_answer in users_answers.items():
-        # Find the corresponding blank information(the answer and the length) in blanks_dict
+        
         expected_answer = answers[position][0]  # expected answer
         expected_length = answers[position][1]   # expected length of the answer
         
@@ -147,6 +171,10 @@ def calculate_score(answers, users_answers):
 
 @app.get("/results/{test_id}", response_class=HTMLResponse)
 async def get_results(request: Request, test_id: str):
+    """
+    Accepts test id
+    Returns information corresponding to submission for requested test id
+    """
     test = TEST_DB.get(test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
