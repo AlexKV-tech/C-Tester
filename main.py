@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +8,8 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Dict
 from ctest_gen import generate_ctest
+from pdf_gen import generate_pdf_ctest
+import tempfile, os
 
 app = FastAPI()
 app.add_middleware(
@@ -44,24 +46,22 @@ async def generate(input: CTestTextInput):
     Accept original text(input: CTestTextInput) and generate C-Test from it. 
     Original text, generated C-Test, creation date, expiring data, answers and submission are written into database
     """
-    try:
-        output, answers = generate_ctest(input.text, input.difficulty)
-        test_id = uuid.uuid4().hex[:8]
-        created_at = datetime.utcnow()
-        time_delta = timedelta(days=7) # time span after which the link for a created test will expire -> all information related to the test_id will be deleted from the DB
-        expires_at = created_at + time_delta
-        # Write C-Test data into database
-        TEST_DB[test_id] = {
-            "ctest_text": output,
-            "created_at": created_at,
-            "expires_at": expires_at,
-            "answers": answers,
-            "original_text": input.text,
-            "submissions": {}
-        }
-        return {"ctest_text": output, "link": f"/test/{test_id}", "answers": answers}
-    except Exception as e:
-        return JSONResponse({"Unexpected error": str(e)}, 400)
+    output, answers = generate_ctest(input.text, input.difficulty)
+    test_id = uuid.uuid4().hex[:8]
+    created_at = datetime.utcnow()
+    time_delta = timedelta(days=7) # time span after which the link for a created test will expire -> all information related to the test_id will be deleted from the DB
+    expires_at = created_at + time_delta
+    # Write C-Test data into database
+    TEST_DB[test_id] = {
+        "ctest_text": output,
+        "created_at": created_at,
+        "expires_at": expires_at,
+        "answers": answers,
+        "original_text": input.text,
+        "submissions": {}
+    }
+    return {"ctest_text": output, "link": f"/test/{test_id}", "answers": answers}
+    
 
 @app.get("/test/{test_id}", response_class=HTMLResponse)
 async def get_ctest_form(request: Request, test_id: str):
@@ -186,3 +186,59 @@ async def get_results(request: Request, test_id: str):
         "submissions": submissions,
         "test_data": test
     })
+
+@app.post("/generate_pdf", response_class=HTMLResponse)
+async def get_printable_pdf(input: CTestTextInput, background_tasks: BackgroundTasks):
+    """
+    Accept original text(input: CTestTextInput) and generate C-Test from it. 
+
+    """
+    
+    output, _ = generate_ctest(input.text, input.difficulty)
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    tmp.close()
+    generate_pdf_ctest(output, tmp.name)
+    
+    background_tasks.add_task(os.remove, tmp.name)
+    return FileResponse(tmp.name, filename="printable.pdf", media_type="application/pdf")
+    
+    
+
+
+'''
+from fastapi import FastAPI, Form, BackgroundTasks, Depends
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from fpdf import FPDF
+import tempfile, os
+
+app = FastAPI()
+
+# 👇 This trick lets you use Pydantic with Form data!
+class FormModel(BaseModel):
+    message: str
+
+    @classmethod
+    def as_form(cls, message: str = Form(...)):
+        return cls(message=message)
+
+@app.post("/generate-pdf")
+def generate_pdf(
+    form_data: FormModel = Depends(FormModel.as_form),
+    background_tasks: BackgroundTasks = Depends()
+):
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    tmp.close()
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=14)
+    pdf.multi_cell(0, 10, f"💬 User input:\n\n{form_data.message}")
+    pdf.output(tmp.name)
+
+    background_tasks.add_task(os.remove, tmp.name)
+    return FileResponse(tmp.name, filename="generated.pdf", media_type="application/pdf")
+
+
+
+'''
