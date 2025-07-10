@@ -3,13 +3,16 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict
 from ctest_gen import generate_ctest
+import models
 from pdf_gen import generate_pdf_ctest
 import tempfile, os
+from schemas import CTestTextInput, CTestSubmission
+from services import add_tables
+
+add_tables()
 
 app = FastAPI()
 app.add_middleware(
@@ -22,14 +25,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 TEST_DB = {}
 
-class CTestTextInput(BaseModel):
-    text: str # text to be modified
-    difficulty: str # difficulty of ther test either easy, medium or hard
-
-class CTestSubmission(BaseModel):
-    test_id: str 
-    answers: Dict[int, str]  # answers of a user in form <index of answer>: <answer>
-    original_text: str # original text that was blanked 
 
 
 
@@ -191,13 +186,13 @@ async def get_results(request: Request, test_id: str):
 async def get_printable_pdf(input: CTestTextInput, background_tasks: BackgroundTasks):
     """
     Accept original text(input: CTestTextInput) and generate C-Test from it. 
-
+    Returns a PDF file with the generated C-Test.
     """
     
-    output, _ = generate_ctest(input.text, input.difficulty)
+    ctest_text, _ = generate_ctest(input.text, input.difficulty)
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     tmp.close()
-    generate_pdf_ctest(output, tmp.name)
+    generate_pdf_ctest(ctest_text, input.text, tmp.name)
     
     background_tasks.add_task(os.remove, tmp.name)
     return FileResponse(tmp.name, filename="printable.pdf", media_type="application/pdf")
@@ -205,40 +200,3 @@ async def get_printable_pdf(input: CTestTextInput, background_tasks: BackgroundT
     
 
 
-'''
-from fastapi import FastAPI, Form, BackgroundTasks, Depends
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from fpdf import FPDF
-import tempfile, os
-
-app = FastAPI()
-
-# 👇 This trick lets you use Pydantic with Form data!
-class FormModel(BaseModel):
-    message: str
-
-    @classmethod
-    def as_form(cls, message: str = Form(...)):
-        return cls(message=message)
-
-@app.post("/generate-pdf")
-def generate_pdf(
-    form_data: FormModel = Depends(FormModel.as_form),
-    background_tasks: BackgroundTasks = Depends()
-):
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    tmp.close()
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", size=14)
-    pdf.multi_cell(0, 10, f"💬 User input:\n\n{form_data.message}")
-    pdf.output(tmp.name)
-
-    background_tasks.add_task(os.remove, tmp.name)
-    return FileResponse(tmp.name, filename="generated.pdf", media_type="application/pdf")
-
-
-
-'''

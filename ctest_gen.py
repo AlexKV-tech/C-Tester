@@ -1,6 +1,6 @@
 import spacy
-import spacy.tokens
 
+# Constants for C-Test generation
 EASY_BLANKS_PER_SENTENCE_COEFF = 0.1
 MEDIUM_BLANKS_PER_SENTENCE_COEFF = 0.4
 HARD_BLANKS_PER_SENTENCE_COEFF = 0.7
