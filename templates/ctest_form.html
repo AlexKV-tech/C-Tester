@@ -26,9 +26,9 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        window.ctestText = {{ ctest_text | tojson | safe }};
-        window.blanksMap = {{ blanks | tojson | safe }};
-        window.testId = "{{ test_id }}";
+        const ctestText = {{ ctest_text | tojson | safe }};
+        const answersMap = {{ blanks | tojson | safe }};
+        const testId = "{{ test_id }}";
     </script>
     <script src="{{ url_for('static', path='/scripts/ctest_form.js') }}"></script>
     <script src="{{ url_for('static', path='/scripts/theme_switch.js') }}"></script>

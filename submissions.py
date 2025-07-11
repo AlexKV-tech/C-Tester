@@ -6,106 +6,120 @@ from templates import templates
 from database import TEST_DB
 from schemas import CTestSubmission
 
-
 submission_router = APIRouter()
+
+
 @submission_router.post("/submit-ctest")
 async def submit_ctest(submission: CTestSubmission):
     """
-    Receives user's C-Test submission, grades it, stores the submission data into database
-    Returns achieved score, total number of blanks, submission id and message indicating whther the request was successful
-    """
+    Evaluates and stores a user's C-Test submission.
 
-    # Fetch the test data(including answers, original text, etc.) related to the test id from the DB - will be replaced by real DB when deploying
+    - Validates test existence and expiration
+    - Compares user answers against the solution key
+    - Stores the result in the temporary database
+    - Returns score and submission ID
+
+    Args:
+        submission: User's completed C-Test form
+
+    Returns:
+        JSON with score, total blanks, and confirmation message
+    """
     test = TEST_DB.get(submission.test_id)
-    
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
-    
+
     if test["expires_at"] < datetime.utcnow():
         raise HTTPException(status_code=410, detail="Test has expired")
-    
-    
-    users_answers = submission.answers
+
     answers = test["answers"]
-    score = calculate_score(answers, users_answers)
-    
-    # Store the submission results in the DB - will be replaced by real DB when deploying
+    score_data = calculate_score(answers, submission.answers)
+
     submission_id = uuid.uuid4().hex[:8]
-    TEST_DB[submission.test_id]["submissions"] = TEST_DB[submission.test_id].get("submissions", {})
+    TEST_DB[submission.test_id].setdefault("submissions", {})
     TEST_DB[submission.test_id]["submissions"][submission_id] = {
-        
-        "users_answers": users_answers,
-        "score": score,
+        "user_answers": submission.answers,
+        "score": score_data,
         "submitted_at": datetime.utcnow()
     }
-    
+
     return JSONResponse({
-        "score": score,
-        "total_blanks": len(users_answers),
+        "score": score_data["correct"],
+        "total_blanks": score_data["total"],
         "submission_id": submission_id,
         "message": "Ihr C-Test wurde erfolgreich abgesendet"
-    }, status_code=200)
+    })
 
-def calculate_score(answers, users_answers):
+
+def calculate_score(correct_answers: dict, user_answers: dict) -> dict:
     """
-    Calculates achieved score comparing sample answers with user's answers
-    Returns number of correct answers, number of blanks in total, percentage 
-    of correct answers and map detailed_results, which for each word with missed part contains: 
-    user answer, expected anser, expected length of the answer, bool variable indicating whether 
-    the answer was correct
+    Compares submitted answers against the correct ones.
+
+    Args:
+        correct_answers: Mapping of blank positions to (solution, expected_length)
+        user_answers: Mapping of blank positions to user's input
+
+    Returns:
+        dict with:
+            - correct: Number of correct responses
+            - total: Total number of blanks
+            - percentage: % of correct responses
+            - detailed_results: Per-blank correctness and feedback
     """
-    correct_answers = 0
-    total_blanks = len(users_answers)
     detailed_results = {}
-    
+    correct_count = 0
 
-    for position, users_answer in users_answers.items():
-        
-        expected_answer = answers[position][0]  # expected answer
-        expected_length = answers[position][1]   # expected length of the answer
-        
-        # Answers are case and whitespace insensitive
-        users_answer = users_answer.lower().strip()
-        expected_answer = expected_answer.lower().strip()
+    for position, user_input in user_answers.items():
+        expected_answer, expected_length = correct_answers.get(position, ("", 0))
 
-        is_correct = users_answer == expected_answer
+        normalized_user = user_input.lower().strip()
+        normalized_expected = expected_answer.lower().strip()
+
+        is_correct = normalized_user == normalized_expected
         if is_correct:
-            correct_answers += 1
-        
+            correct_count += 1
+
         detailed_results[position] = {
-            "user_answer": users_answer,
-            "expected_answer": expected_answer,
+            "user_answer": normalized_user,
+            "expected_answer": normalized_expected,
             "expected_length": expected_length,
             "is_correct": is_correct
         }
-    
-    percentage = (correct_answers * 100 / total_blanks) if total_blanks > 0 else 0
-    
+
+    total = len(user_answers)
+    percentage = (correct_count / total * 100) if total > 0 else 0
+
     return {
-        "correct": correct_answers,
-        "total": total_blanks,
+        "correct": correct_count,
+        "total": total,
         "percentage": percentage,
         "detailed_results": detailed_results
     }
 
+
 @submission_router.get("/results/{test_id}", response_class=HTMLResponse)
 async def get_results(request: Request, test_id: str):
     """
-    Accepts test id
-    Returns information corresponding to submission for requested test id
+    Displays all submissions for a given test.
+
+    Args:
+        request: FastAPI request
+        test_id: ID of the test
+
+    Returns:
+        Renders results.html with all test submissions
     """
     test = TEST_DB.get(test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
-    
-    submissions = test.get("submissions", {})
+
+    submissions = test.get("submissions")
+    if not submissions:
+        raise HTTPException(status_code=404, detail="No submissions for this test")
+
     return templates.TemplateResponse("results.html", {
         "request": request,
         "test_id": test_id,
         "submissions": submissions,
         "test_data": test
     })
-
-
-    
-

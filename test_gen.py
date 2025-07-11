@@ -1,93 +1,122 @@
-import spacy
-from fastapi import APIRouter
-from schemas import CTestTextInput
-from datetime import datetime
-from datetime import timedelta
-from database import TEST_DB
 import uuid
+from datetime import datetime, timedelta
+from fastapi import APIRouter, HTTPException
+import spacy
+
+from database import TEST_DB
+from schemas import CTestTextInput
 
 generator_router = APIRouter()
 
-# Constants for C-Test generation
-EASY_BLANKS_PER_SENTENCE_COEFF = 0.1
-MEDIUM_BLANKS_PER_SENTENCE_COEFF = 0.4
-HARD_BLANKS_PER_SENTENCE_COEFF = 0.7
+# Difficulty coefficients
+BLANK_COEFF = {
+    "easy": 0.1,
+    "medium": 0.4,
+    "hard": 0.7
+}
+
+# Other constants
 MINIMAL_WORD_LENGTH = 2
 MINIMAL_TEXT_LENGTH = 3
-LANGUAGE_PARTS = {"NOUN", "VERB", "ADJ", "ADV"}
+TARGET_POS = {"NOUN", "VERB", "ADJ", "ADV"}
+TEST_EXPIRATION_DAYS = 7
 BLANK_SYMBOL = "_"
 
 
+def generate_ctest_unit(text: str, difficulty: str) -> tuple[str, dict]:
+    """
+    Generates a C-Test from the given text.
 
-def generate_test_unit(text, difficulty, target_pos=LANGUAGE_PARTS, blanks_per_sentence_coeff=MEDIUM_BLANKS_PER_SENTENCE_COEFF):
+    Args:
+        text (str): Source text
+        difficulty (str): One of "easy", "medium", "hard"
+
+    Returns:
+        Tuple:
+            - Modified C-Test string
+            - Answer metadata dictionary
+
+    Raises:
+        ValueError: If invalid difficulty or too short input
     """
-    Core function that generates CTest based on:
-        text -- string representantion of a text to be modified
-        difficulty -- string representantion of difficulty of generated C-Test(easy/medium/hard), which determines the coefficient of blanks per sentence
-        target_pos -- language parts that are allowed to be modified for C-Test
-        blanks_per_sentence_coeff -- coefficient that is determined by dificulty(see constants for easy/medium/hard difficulties)
-    Returned values:
-        ctest_text -- generated C-Test of type str
-        answers -- dictionary in form blanked_index:[{missed part}, {length of missed part}, {start of blanked word}, {start of the blank within a word}, {end of blanked word}]
-    """
-    if difficulty == "hard":
-        blanks_per_sentence_coeff = HARD_BLANKS_PER_SENTENCE_COEFF
-    elif difficulty == "easy":
-        print(difficulty)
-        blanks_per_sentence_coeff = EASY_BLANKS_PER_SENTENCE_COEFF
+    if difficulty not in BLANK_COEFF:
+        raise ValueError("Invalid difficulty. Must be 'easy', 'medium', or 'hard'.")
+
     nlp = spacy.load("de_core_news_sm")
     doc = nlp(text)
     sentences = list(doc.sents)
-    answers = {}
-    blanked_word_pos = 0
-    ctest_text = list(text)
-    
+
     if len(sentences) < MINIMAL_TEXT_LENGTH:
-        return "Der eingegebene Text ist zu kurz"
+        raise ValueError("Der eingegebene Text ist zu kurz für einen C-Test.")
+
+    blanks_per_sentence_coeff = BLANK_COEFF[difficulty]
+    ctest_chars = list(text)
+    answers = {}
+    blank_index = 0
+
     for sentence in sentences:
-        blanked_sentence_words = 0
-        word_count = len([word for word in sentence if word.pos_ in target_pos])
-        for word in sentence:
-            if word.pos_ in target_pos and word.is_alpha and\
-                  len(word) >= MINIMAL_WORD_LENGTH and word_count\
-                      and blanked_sentence_words/word_count < blanks_per_sentence_coeff:
-                start_word_idx = word.idx
-                end_word_idx = word.idx + len(word)
-                half_index = (start_word_idx + end_word_idx)//2
-                answer = "".join(ctest_text[half_index:end_word_idx])
-                ctest_text[half_index:end_word_idx] = list("_" * (end_word_idx - half_index))
-                answers[blanked_word_pos] = [answer, len(answer), start_word_idx, half_index, end_word_idx ]
-                blanked_word_pos += 1
-                blanked_sentence_words += 1
-    ctest_text = "".join(ctest_text)
-    return ctest_text, answers
-                
+        eligible_words = [w for w in sentence if w.pos_ in TARGET_POS and w.is_alpha and len(w.text) >= MINIMAL_WORD_LENGTH]
+        max_blanks = max(1, int(len(eligible_words) * blanks_per_sentence_coeff))
+        blanks_created = 0
+
+        for word in eligible_words:
+            if blanks_created >= max_blanks:
+                break
+
+            start = word.idx
+            end = start + len(word)
+            mid = (start + end) // 2
+
+            blank_length = end - mid
+            blank_text = "".join(ctest_chars[mid:end])
+
+            # Replace part of the word with underscores
+            ctest_chars[mid:end] = [BLANK_SYMBOL] * blank_length
+
+            answers[blank_index] = [blank_text, blank_length, start, mid, end]
+            blank_index += 1
+            blanks_created += 1
+
+    ctest_output = "".join(ctest_chars)
+    return ctest_output, answers
 
 
 @generator_router.post("/generate")
 async def generate_test_reply(input: CTestTextInput):
     """
-    Accept original text(input: CTestTextInput) and generate C-Test from it. 
-    Original text, generated C-Test, creation date, expiring data, answers and submission are written into database
+    FastAPI endpoint: generates and stores a C-Test from input text.
+
+    Args:
+        input: Contains text and difficulty level
+
+    Returns:
+        Dictionary with:
+            - ctest_text: C-Test with blanks
+            - link: Shareable test link
+            - answers: Answer key (for dev/debug only)
     """
-    output, answers = generate_test_unit(input.text, input.difficulty)
+    try:
+        ctest_text, answers = generate_ctest_unit(input.text, input.difficulty)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     test_id = uuid.uuid4().hex[:8]
     created_at = datetime.utcnow()
-    time_delta = timedelta(days=7) # time span after which the link for a created test will expire -> all information related to the test_id will be deleted from the DB
-    expires_at = created_at + time_delta
-    # Write C-Test data into DB - will be replaced by real write operation into database - will be replaced by real DB when deploying
+    expires_at = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
+
     TEST_DB[test_id] = {
-        "ctest_text": output,
+        "ctest_text": ctest_text,
         "created_at": created_at,
         "expires_at": expires_at,
         "answers": answers,
         "original_text": input.text,
         "submissions": {}
     }
-    return {"ctest_text": output, "link": f"/test/{test_id}", "answers": answers}
 
-
-
-    
-
-
+    return {
+        "test_id": test_id,
+        "ctest_text": ctest_text,
+        "expires_at": expires_at.isoformat(),
+        "share_url": f"/test/{test_id}",
+        "answers": answers  # Consider removing in production
+    }

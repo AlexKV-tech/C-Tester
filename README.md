@@ -1,2 +1,2 @@
 # C-Tester
-C-Test generator to help preparing for language entrance exams in german-speaking countries
+A C-Test generator to help prepare for language entrance exams in German-speaking countries.

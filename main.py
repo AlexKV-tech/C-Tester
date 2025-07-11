@@ -24,9 +24,7 @@ app.include_router(form_gen.form_router)
 
 @app.get("/", response_class=HTMLResponse)
 def serve_home(request: Request):
-    """ 
-    Serve user to main page - generator of C-Tests
-    """
+    """Serves the main C-Test generator page to users."""
     return templates.TemplateResponse("index.html", {"request": request})
 
 

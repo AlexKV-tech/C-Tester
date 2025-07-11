@@ -1,18 +1,29 @@
+
 function renderCTest(text) {
-    if (!text) {
-        console.error('ctestText is undefined or null');
+    if (!text || !answersMap) {
+        console.error('ctestText or answersMap is undefined');
         return;
     }
 
     const container = document.getElementById('ctestContainer');
     container.innerHTML = '';
+
     let blankIndex = 0;
     let i = 0;
+
     while (i < text.length) {
         const char = text[i];
+
         if (char === '_') {
-            const blankLength = blanksMap[blankIndex];
-            const nextWordIndex = i + blankLength;
+            const currentBlank = answersMap[blankIndex];
+            if (!currentBlank) {
+                console.warn(`No answer found for blank index ${blankIndex}`);
+                break;
+            }
+
+            const blankLength = answersMap[blankIndex];
+            const nextIndex = i + blankLength;
+
             const input = document.createElement('input');
             input.type = 'text';
             input.name = `blank_${blankIndex}`;
@@ -20,9 +31,10 @@ function renderCTest(text) {
             input.className = 'blank-box';
             input.dataset.blankIndex = blankIndex;
             input.style.width = `${Math.max(blankLength * 0.8, 2)}em`;
+
             container.appendChild(input);
             blankIndex++;
-            i = nextWordIndex;
+            i = nextIndex;
         } else {
             container.appendChild(document.createTextNode(char));
             i++;
@@ -34,8 +46,8 @@ function collectUserInput() {
     const inputs = document.querySelectorAll('#ctestContainer input');
     const userAnswers = {};
     inputs.forEach(input => {
-        const blankIndex = parseInt(input.dataset.blankIndex);
-        userAnswers[blankIndex] = input.value;
+        const index = parseInt(input.dataset.blankIndex);
+        userAnswers[index] = input.value.trim();
     });
     return userAnswers;
 }
@@ -45,7 +57,7 @@ function showMessage(message, type = 'info') {
     messageDiv.innerHTML = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     `;
 }
@@ -63,9 +75,7 @@ function submitAnswers(event) {
 
     fetch('/submit-ctest', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             test_id: testId,
             answers: answers,
@@ -75,8 +85,7 @@ function submitAnswers(event) {
         .then(async (response) => {
             const data = await response.json();
 
-
-            if (response.status === 200) {
+            if (response.ok) {
                 showMessage('C-Test erfolgreich abgesendet!', 'success');
 
                 if (data.score) {
@@ -86,11 +95,11 @@ function submitAnswers(event) {
                     );
                 }
             } else {
-                showMessage('Fehler beim Absenden: ' + (data.message || 'Unbekannter Fehler'), 'danger');
+                showMessage(`Fehler beim Absenden: ${data.message || 'Unbekannter Fehler'}`, 'danger');
             }
         })
-        .catch((error) => {
-            console.log(error);
+        .catch(error => {
+            console.error(error);
             showMessage('Fehler beim Absenden. Bitte versuchen Sie es erneut.', 'danger');
         })
         .finally(() => {
@@ -98,14 +107,11 @@ function submitAnswers(event) {
             submitBtn.disabled = false;
             form.classList.remove('loading');
         });
-
 }
-
 
 function initializeCTest() {
     renderCTest(ctestText);
     document.getElementById('ctestForm').addEventListener('submit', submitAnswers);
 }
-
 
 document.addEventListener('DOMContentLoaded', initializeCTest);

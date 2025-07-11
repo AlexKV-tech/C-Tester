@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>C-Test Ergebnisse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C-Test Ergebnisse – Ihre Ergebnisse ansehen</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
@@ -17,14 +18,15 @@
                 <h5 class="card-title">Submission {{ submission_id }}</h5>
                 <p><strong>Score:</strong> {{ submission.score.correct }}/{{ submission.score.total }} ({{
                     submission.score.percentage|round(1) }}%)</p>
-                <p><strong>Submitted:</strong> {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                <p><strong>Abgegeben am:</strong> {{ submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S') if
+                    submission.submitted_at else 'N/A' }}</p>
             </div>
         </div>
         {% endfor %}
         {% else %}
-        <p>No submissions yet.</p>
+        <p class="alert alert-info">Noch keine Einsendungen vorhanden.</p>
         {% endif %}
-        <a href="/" class="btn btn-primary">Back to Home</a>
+        <a href="/" class="btn btn-primary">Zur Startseite</a>
     </div>
 </body>
 

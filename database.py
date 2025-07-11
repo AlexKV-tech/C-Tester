@@ -1,2 +1,2 @@
-# When deploying will be replaced by a real database
+# During deployment, this will be replaced by a real database.
 TEST_DB = {}
