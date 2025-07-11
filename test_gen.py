@@ -1,4 +1,12 @@
 import spacy
+from fastapi import APIRouter
+from schemas import CTestTextInput
+from datetime import datetime
+from datetime import timedelta
+from database import TEST_DB
+import uuid
+
+generator_router = APIRouter()
 
 # Constants for C-Test generation
 EASY_BLANKS_PER_SENTENCE_COEFF = 0.1
@@ -11,7 +19,7 @@ BLANK_SYMBOL = "_"
 
 
 
-def generate_ctest(text: str, difficulty: str, target_pos=LANGUAGE_PARTS, blanks_per_sentence_coeff=MEDIUM_BLANKS_PER_SENTENCE_COEFF) -> str:
+def generate_test_unit(text, difficulty, target_pos=LANGUAGE_PARTS, blanks_per_sentence_coeff=MEDIUM_BLANKS_PER_SENTENCE_COEFF):
     """
     Core function that generates CTest based on:
         text -- string representantion of a text to be modified
@@ -56,7 +64,27 @@ def generate_ctest(text: str, difficulty: str, target_pos=LANGUAGE_PARTS, blanks
                 
 
 
-
+@generator_router.post("/generate")
+async def generate_test_reply(input: CTestTextInput):
+    """
+    Accept original text(input: CTestTextInput) and generate C-Test from it. 
+    Original text, generated C-Test, creation date, expiring data, answers and submission are written into database
+    """
+    output, answers = generate_test_unit(input.text, input.difficulty)
+    test_id = uuid.uuid4().hex[:8]
+    created_at = datetime.utcnow()
+    time_delta = timedelta(days=7) # time span after which the link for a created test will expire -> all information related to the test_id will be deleted from the DB
+    expires_at = created_at + time_delta
+    # Write C-Test data into DB - will be replaced by real write operation into database - will be replaced by real DB when deploying
+    TEST_DB[test_id] = {
+        "ctest_text": output,
+        "created_at": created_at,
+        "expires_at": expires_at,
+        "answers": answers,
+        "original_text": input.text,
+        "submissions": {}
+    }
+    return {"ctest_text": output, "link": f"/test/{test_id}", "answers": answers}
 
 
 
