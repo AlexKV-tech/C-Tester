@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Depends
+import sqlalchemy
 from sqlalchemy.orm import Session
 import spacy
 from database import TEST_DB, get_db
@@ -106,6 +107,7 @@ async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_d
     expires_at: datetime = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
 
     db_entry = {
+        
         "ctest_text": ctest_text,
         "created_at": created_at,
         "expires_at": expires_at,
@@ -116,7 +118,7 @@ async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_d
     db.add(new_ctest_entry)
     db.commit()
     db.refresh(new_ctest_entry)
-
+    print(db.query(models.CTest).first().test_id)
     TEST_DB[test_id] = {
         "ctest_text": ctest_text,
         "created_at": created_at,
