@@ -46,9 +46,7 @@ async def submit_ctest(submission: CTestSubmission):
     }
     
     return JSONResponse({
-        "score": score_data["correct"],
-        "total_blanks": score_data["total"],
-        "percentage": score_data["percentage"],
+        "score": score_data,
         "submission_id": submission_id,
         "message": "Ihr C-Test wurde erfolgreich abgesendet"
     })

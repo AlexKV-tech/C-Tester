@@ -86,11 +86,11 @@ function submitAnswers(event) {
             const data = await response.json();
 
             if (response.ok) {
-                showMessage('C-Test erfolgreich abgesendet!', 'success');
+                showMessage(data.message, 'success');
 
-                if (data) {
+                if (data.score) {
                     showMessage(
-                        `Ergebnis: ${data.score}/${data.total_blanks} richtig (${data.percentage}%)`,
+                        `Ergebnis: ${data.score.correct}/${data.score.total} richtig (${data.score.percentage}%)`,
                         'info'
                     );
                 }
