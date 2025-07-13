@@ -42,7 +42,7 @@ def generate_pdf_test(ctest_text: str, orig_text: str, path: str) -> None:
         ValueError: If either input text is empty.
     """
     if not ctest_text.strip() or not orig_text.strip():
-        raise ValueError("Input text cannot be empty.")
+        raise ValueError("Input text is not allowed to be empty.")
 
     formatted_text = format_blanks(ctest_text)
 
@@ -106,4 +106,4 @@ async def get_pdf_reply(input: CTestTextInput, background_tasks: BackgroundTasks
         raise HTTPException(status_code=400, detail=str(ve))
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to generate PDF.")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF. " + str(e))

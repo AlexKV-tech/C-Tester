@@ -43,9 +43,9 @@ async def get_ctest_form(request: Request, test_id: str):
                 status_code=410
             )
 
-        # Prepare blank metadata: maps blank IDs to their positions for JavaScript rendering
-        blanks_metadata = {
-            blank_id: blanks_info[1] for blank_id, blanks_info in zip(test["answers"].keys(), test["answers"].values())
+        # Prepare blank metadata: maps blank IDs to their lengths for JavaScript rendering
+        blanks_metadata: dict[str, str] = {
+            blank_id: blanks_info["length"] for blank_id, blanks_info in zip(test["answers"].keys(), test["answers"].values())
             }
 
        
@@ -63,5 +63,5 @@ async def get_ctest_form(request: Request, test_id: str):
        
         raise HTTPException(
             status_code=500,
-            detail="Test rendering service unavailable"
+            detail="Test rendering service unavailable " + str(e)
         )

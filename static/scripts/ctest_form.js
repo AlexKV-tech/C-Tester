@@ -10,20 +10,18 @@ function renderCTest(text) {
 
     let blankIndex = 0;
     let i = 0;
+    console.log(answersMap);
 
     while (i < text.length) {
         const char = text[i];
 
         if (char === '_') {
-            const currentBlank = answersMap[blankIndex];
-            if (!currentBlank) {
-                console.warn(`No answer found for blank index ${blankIndex}`);
+            const blankLength = parseInt(answersMap[blankIndex]);
+            if (!blankLength) {
+                console.warn(`No length found for blank index ${blankIndex}`);
                 break;
             }
-
-            const blankLength = answersMap[blankIndex];
             const nextIndex = i + blankLength;
-
             const input = document.createElement('input');
             input.type = 'text';
             input.name = `blank_${blankIndex}`;
@@ -31,7 +29,6 @@ function renderCTest(text) {
             input.className = 'blank-box';
             input.dataset.blankIndex = blankIndex;
             input.style.width = `${Math.max(blankLength * 0.8, 2)}em`;
-
             container.appendChild(input);
             blankIndex++;
             i = nextIndex;

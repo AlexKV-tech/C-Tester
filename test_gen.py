@@ -1,9 +1,11 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 import spacy
-from database import TEST_DB
+from database import TEST_DB, get_db
 from schemas import CTestTextInput
+import models
 
 generator_router = APIRouter()
 
@@ -22,7 +24,7 @@ TEST_EXPIRATION_DAYS = 7
 BLANK_SYMBOL = "_"
 
 
-def generate_ctest_unit(text: str, difficulty: str) -> tuple[str, dict]:
+def generate_ctest_unit(text: str, difficulty: str) -> tuple[str, dict[int, dict[str, str]]]:
     """
     Generates a C-Test from the given text.
 
@@ -48,10 +50,10 @@ def generate_ctest_unit(text: str, difficulty: str) -> tuple[str, dict]:
     if len(sentences) < MINIMAL_TEXT_LENGTH:
         raise ValueError("Der eingegebene Text ist zu kurz für einen C-Test.")
 
-    blanks_per_sentence_coeff = BLANK_COEFF[difficulty]
-    ctest_chars = list(text)
-    answers = {}
-    blank_index = 0
+    blanks_per_sentence_coeff: float = BLANK_COEFF[difficulty]
+    ctest_chars: list[str] = list(text)
+    answers: dict[int, dict[str, str]]  = {}
+    blank_index: int = 0
 
     for sentence in sentences:
         eligible_words = [w for w in sentence if w.pos_ in TARGET_POS and w.is_alpha and len(w.text) >= MINIMAL_WORD_LENGTH]
@@ -72,16 +74,16 @@ def generate_ctest_unit(text: str, difficulty: str) -> tuple[str, dict]:
             
             ctest_chars[mid:end] = [BLANK_SYMBOL] * blank_length
 
-            answers[blank_index] = [blank_text, blank_length, start, mid, end]
+            answers[blank_index] = {"answer": blank_text, "length": str(blank_length)}
             blank_index += 1
             blanks_created += 1
 
-    ctest_output = "".join(ctest_chars)
+    ctest_output: str = "".join(ctest_chars)
     return ctest_output, answers
 
 
 @generator_router.post("/generate")
-async def generate_test_reply(input: CTestTextInput):
+async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_db)) -> dict[str, str]:
     """
     FastAPI endpoint: generates and stores a C-Test from input text.
 
@@ -95,13 +97,25 @@ async def generate_test_reply(input: CTestTextInput):
             - answers: Answer key (for debug only)
     """
     try:
-        ctest_text, answers = generate_ctest_unit(input.text, input.difficulty)
+        ctest_text, answers  = generate_ctest_unit(input.text, input.difficulty)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    test_id = uuid.uuid4().hex[:8]
-    created_at = datetime.now(timezone.utc)
-    expires_at = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
+    test_id: str = uuid.uuid4().hex[:8]
+    created_at: datetime = datetime.now(timezone.utc)
+    expires_at: datetime = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
+
+    db_entry = {
+        "ctest_text": ctest_text,
+        "created_at": created_at,
+        "expires_at": expires_at,
+        "answers": answers,
+        "original_text": input.text,
+    }
+    new_ctest_entry = models.CTest(**db_entry)
+    db.add(new_ctest_entry)
+    db.commit()
+    db.refresh(new_ctest_entry)
 
     TEST_DB[test_id] = {
         "ctest_text": ctest_text,
@@ -113,9 +127,6 @@ async def generate_test_reply(input: CTestTextInput):
     }
     
     return {
-        "test_id": test_id,
         "ctest_text": ctest_text,
-        "expires_at": expires_at,
         "share_url": f"/test/{test_id}",
-        "answers": answers  
     }

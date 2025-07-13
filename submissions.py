@@ -10,7 +10,7 @@ submission_router = APIRouter()
 
 
 @submission_router.post("/submit-ctest")
-async def submit_ctest(submission: CTestSubmission):
+async def submit_ctest(submission: CTestSubmission) -> JSONResponse:
     """
     Evaluates and stores a user's C-Test submission.
 
@@ -34,11 +34,12 @@ async def submit_ctest(submission: CTestSubmission):
     if test["expires_at"] < current_time:
         raise HTTPException(status_code=410, detail="Test has expired")
 
-    answers = test["answers"]
+    answers: dict[int, dict[str, str]] = test.get("answers")
+    if not answers:
+        raise HTTPException(status_code=404, detail="Answers not found")
     score_data = calculate_score(answers, submission.answers)
 
-    submission_id = uuid.uuid4().hex[:8]
-    TEST_DB[submission.test_id].setdefault("submissions", {})
+    submission_id: str = uuid.uuid4().hex[:8]
     TEST_DB[submission.test_id]["submissions"][submission_id] = {
         "user_answers": submission.answers,
         "score": score_data,
@@ -52,7 +53,7 @@ async def submit_ctest(submission: CTestSubmission):
     })
 
 
-def calculate_score(correct_answers: dict, user_answers: dict) -> dict:
+def calculate_score(correct_answers: dict, user_answers: dict):
     """
     Compares submitted answers against the correct ones.
 
@@ -71,7 +72,14 @@ def calculate_score(correct_answers: dict, user_answers: dict) -> dict:
     correct_count = 0
     
     for position, user_input in user_answers.items():
-        expected_answer, expected_length, *a = correct_answers.get(position, ("", 0))
+        expected_answer = ""
+        expected_length = "0"
+        answer_map = correct_answers.get(position)
+        if answer_map:
+            expected_answer = answer_map.get("answer", "")
+            expected_length = answer_map.get("length", "0")
+        else:
+            raise ValueError(f"Answer on position {position} not found")
 
         normalized_user = user_input.lower().strip()
         normalized_expected = expected_answer.lower().strip()
