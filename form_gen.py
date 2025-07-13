@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from templates import templates
@@ -35,8 +35,8 @@ async def get_ctest_form(request: Request, test_id: str):
         # Retrieve test data from mock database (replace with real DB query in production)
         test = TEST_DB.get(test_id)
 
-        # Check if test exists and has not expired
-        if not test or test["expires_at"] < datetime.utcnow():
+        
+        if not test or test["expires_at"] < datetime.now(timezone.utc):
             return templates.TemplateResponse(
                 "expired.html",
                 {"request": request},
@@ -48,7 +48,7 @@ async def get_ctest_form(request: Request, test_id: str):
             blank_id: blanks_info[1] for blank_id, blanks_info in zip(test["answers"].keys(), test["answers"].values())
             }
 
-        # Render the test form page
+       
         return templates.TemplateResponse(
             "ctest_form.html",
             {
@@ -60,7 +60,7 @@ async def get_ctest_form(request: Request, test_id: str):
         )
 
     except Exception as e:
-        # Unexpected error (e.g. DB connection failure)
+       
         raise HTTPException(
             status_code=500,
             detail="Test rendering service unavailable"

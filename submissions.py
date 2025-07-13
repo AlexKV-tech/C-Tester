@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -26,10 +26,12 @@ async def submit_ctest(submission: CTestSubmission):
         JSON with score, total blanks, and confirmation message
     """
     test = TEST_DB.get(submission.test_id)
+    
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
-
-    if test["expires_at"] < datetime.utcnow():
+    current_time = datetime.now(timezone.utc)
+    
+    if test["expires_at"] < current_time:
         raise HTTPException(status_code=410, detail="Test has expired")
 
     answers = test["answers"]
@@ -40,12 +42,13 @@ async def submit_ctest(submission: CTestSubmission):
     TEST_DB[submission.test_id]["submissions"][submission_id] = {
         "user_answers": submission.answers,
         "score": score_data,
-        "submitted_at": datetime.utcnow()
+        "submitted_at": current_time
     }
-
+    
     return JSONResponse({
         "score": score_data["correct"],
         "total_blanks": score_data["total"],
+        "percentage": score_data["percentage"],
         "submission_id": submission_id,
         "message": "Ihr C-Test wurde erfolgreich abgesendet"
     })
@@ -68,9 +71,9 @@ def calculate_score(correct_answers: dict, user_answers: dict) -> dict:
     """
     detailed_results = {}
     correct_count = 0
-
+    
     for position, user_input in user_answers.items():
-        expected_answer, expected_length = correct_answers.get(position, ("", 0))
+        expected_answer, expected_length, *a = correct_answers.get(position, ("", 0))
 
         normalized_user = user_input.lower().strip()
         normalized_expected = expected_answer.lower().strip()

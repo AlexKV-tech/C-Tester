@@ -50,14 +50,4 @@ class CTestSubmission(BaseModel):
     answers: Dict[int, str]
     original_text: str
 
-    @field_validator("answers")
-    @classmethod
-    def validate_answers(cls, answers: Dict[int, str]) -> Dict[int, str]:
-        if not answers:
-            raise ValueError("Answers dictionary cannot be empty.")
-        for index, response in answers.items():
-            if index < 1:
-                raise ValueError(f"Answer index {index} must be a positive integer.")
-            if not response.strip():
-                raise ValueError(f"Answer at index {index} cannot be empty.")
-        return answers
+    

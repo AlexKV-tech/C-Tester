@@ -1,4 +1,4 @@
-import datetime 
+from datetime import datetime, timezone, timedelta
 import sqlalchemy
 import database
 
@@ -7,8 +7,8 @@ class CTest(database.Base):
     test_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, index=True)
     ctest_text = sqlalchemy.Column(sqlalchemy.String, index=True)
     original_text = sqlalchemy.Column(sqlalchemy.String, index=True)
-    created_at = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow)
-    expires_at  = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow)
+    created_at = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.now(timezone.utc))
+    expires_at  = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.now(timezone.utc))
 
 
 

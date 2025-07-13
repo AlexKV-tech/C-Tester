@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
 import spacy
-
 from database import TEST_DB
 from schemas import CTestTextInput
 
@@ -70,7 +69,7 @@ def generate_ctest_unit(text: str, difficulty: str) -> tuple[str, dict]:
             blank_length = end - mid
             blank_text = "".join(ctest_chars[mid:end])
 
-            # Replace part of the word with underscores
+            
             ctest_chars[mid:end] = [BLANK_SYMBOL] * blank_length
 
             answers[blank_index] = [blank_text, blank_length, start, mid, end]
@@ -93,7 +92,7 @@ async def generate_test_reply(input: CTestTextInput):
         Dictionary with:
             - ctest_text: C-Test with blanks
             - link: Shareable test link
-            - answers: Answer key (for dev/debug only)
+            - answers: Answer key (for debug only)
     """
     try:
         ctest_text, answers = generate_ctest_unit(input.text, input.difficulty)
@@ -101,7 +100,7 @@ async def generate_test_reply(input: CTestTextInput):
         raise HTTPException(status_code=400, detail=str(e))
 
     test_id = uuid.uuid4().hex[:8]
-    created_at = datetime.utcnow()
+    created_at = datetime.now(timezone.utc)
     expires_at = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
 
     TEST_DB[test_id] = {
@@ -112,11 +111,11 @@ async def generate_test_reply(input: CTestTextInput):
         "original_text": input.text,
         "submissions": {}
     }
-
+    
     return {
         "test_id": test_id,
         "ctest_text": ctest_text,
-        "expires_at": expires_at.isoformat(),
+        "expires_at": expires_at,
         "share_url": f"/test/{test_id}",
-        "answers": answers  # Consider removing in production
+        "answers": answers  
     }

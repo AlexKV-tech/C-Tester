@@ -88,9 +88,9 @@ function submitAnswers(event) {
             if (response.ok) {
                 showMessage('C-Test erfolgreich abgesendet!', 'success');
 
-                if (data.score) {
+                if (data) {
                     showMessage(
-                        `Ergebnis: ${data.score.correct}/${data.score.total} richtig (${data.score.percentage.toFixed(1)}%)`,
+                        `Ergebnis: ${data.score}/${data.total_blanks} richtig (${data.percentage}%)`,
                         'info'
                     );
                 }

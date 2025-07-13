@@ -2,11 +2,10 @@ import os
 import tempfile
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
-from fpdf import FPDF
-from fpdf import XPos, YPos
+from fpdf import FPDF, XPos, YPos
 from test_gen import BLANK_SYMBOL, generate_ctest_unit
 from schemas import CTestTextInput
-# Fonts
+
 FONT_PATH_REGULAR = "static/fonts/Tinos-Regular.ttf"
 FONT_PATH_BOLD = "static/fonts/Tinos-Bold.ttf"
 
@@ -94,7 +93,7 @@ async def get_pdf_reply(input: CTestTextInput, background_tasks: BackgroundTasks
 
         ctest_text, _ = generate_ctest_unit(input.text, input.difficulty)
 
-        # Temporary file for PDF output
+    
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
         tmp_file.close()
 
