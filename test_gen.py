@@ -107,7 +107,6 @@ async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_d
     expires_at: datetime = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
 
     db_entry = {
-        
         "ctest_text": ctest_text,
         "created_at": created_at,
         "expires_at": expires_at,

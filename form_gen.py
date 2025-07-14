@@ -1,13 +1,16 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse
 from templates import templates
-from database import TEST_DB
+from database import TEST_DB, get_db
+from sqlalchemy.orm import Session
+import models
+
 
 
 form_router = APIRouter()
 @form_router.get("/test/{test_id}", response_class=HTMLResponse)
-async def get_ctest_form(request: Request, test_id: str):
+async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(get_db)):
     """
     Render the C-Test input form or show an expiration notice.
 
@@ -33,10 +36,10 @@ async def get_ctest_form(request: Request, test_id: str):
     """
     try:
         # Retrieve test data from mock database (replace with real DB query in production)
-        test = TEST_DB.get(test_id)
-
+        # test = TEST_DB.get(test_id)
+        test = db.query(models.CTest).filter(models.CTest.test_id == test_id).first()
         
-        if not test or test["expires_at"] < datetime.now(timezone.utc):
+        if not test or test.created_at < datetime.now(timezone.utc):
             return templates.TemplateResponse(
                 "expired.html",
                 {"request": request},
@@ -45,7 +48,7 @@ async def get_ctest_form(request: Request, test_id: str):
 
         # Prepare blank metadata: maps blank IDs to their lengths for JavaScript rendering
         blanks_metadata: dict[str, str] = {
-            blank_id: blanks_info["length"] for blank_id, blanks_info in zip(test["answers"].keys(), test["answers"].values())
+            blank_id: blanks_info["length"] for blank_id, blanks_info in zip(test.answers.keys(), test.answers.values())
             }
 
        
@@ -54,7 +57,7 @@ async def get_ctest_form(request: Request, test_id: str):
             {
                 "request": request,
                 "test_id": test_id,
-                "ctest_text": test["ctest_text"],
+                "ctest_text": test.ctest_text,
                 "blanks": blanks_metadata,
             }
         )

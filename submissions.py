@@ -1,16 +1,18 @@
 from datetime import datetime, timezone
 import uuid
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
+from sqlalchemy.orm import Session
 from fastapi.responses import HTMLResponse, JSONResponse
 from templates import templates
-from database import TEST_DB
+from database import TEST_DB, get_db
 from schemas import CTestSubmission
+import models
 
 submission_router = APIRouter()
 
 
 @submission_router.post("/submit-ctest")
-async def submit_ctest(submission: CTestSubmission) -> JSONResponse:
+async def submit_ctest(submission: CTestSubmission, db: Session = Depends(get_db)) -> JSONResponse:
     """
     Evaluates and stores a user's C-Test submission.
 
@@ -25,16 +27,16 @@ async def submit_ctest(submission: CTestSubmission) -> JSONResponse:
     Returns:
         JSON with score, total blanks, and confirmation message
     """
-    test = TEST_DB.get(submission.test_id)
-    
+    # test = TEST_DB.get(submission.test_id)
+    test = db.query(models.CTest).filter(models.CTest.test_id == submission.test_id).first()
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
     current_time = datetime.now(timezone.utc)
     
-    if test["expires_at"] < current_time:
+    if test.expires_at < current_time:
         raise HTTPException(status_code=410, detail="Test has expired")
 
-    answers: dict[int, dict[str, str]] = test.get("answers")
+    answers: dict[int, dict[str, str]] = test.answers
     if not answers:
         raise HTTPException(status_code=404, detail="Answers not found")
     score_data = calculate_score(answers, submission.answers)
