@@ -1,10 +1,9 @@
 from datetime import datetime, timezone
-import uuid
 from fastapi import APIRouter, HTTPException, Request, Depends
 from sqlalchemy.orm import Session
 from fastapi.responses import HTMLResponse, JSONResponse
 from templates import templates
-from database import TEST_DB, get_db
+from database import get_db
 from schemas import CTestSubmission
 import models
 
@@ -27,32 +26,46 @@ async def submit_ctest(submission: CTestSubmission, db: Session = Depends(get_db
     Returns:
         JSON with score, total blanks, and confirmation message
     """
-    # test = TEST_DB.get(submission.test_id)
-    test = db.query(models.CTest).filter(models.CTest.test_id == submission.test_id).first()
-    if not test:
-        raise HTTPException(status_code=404, detail="Test not found")
-    current_time = datetime.now(timezone.utc)
-    
-    if test.expires_at < current_time:
-        raise HTTPException(status_code=410, detail="Test has expired")
+    try:
+        test = db.query(models.CTest).filter(models.CTest.test_id == submission.test_id).first()
+        if not test:
+            raise HTTPException(status_code=404, detail="Test not found")
+        current_time = datetime.now(timezone.utc)
+        
+        if test.expires_at < current_time:
+            raise HTTPException(status_code=410, detail="Test has expired")
 
-    answers: dict[int, dict[str, str]] = test.answers
-    if not answers:
-        raise HTTPException(status_code=404, detail="Answers not found")
-    score_data = calculate_score(answers, submission.answers)
+        answers: dict[int, dict[str, str]] = test.answers
+        if not answers:
+            raise HTTPException(status_code=404, detail="Answers not found")
+        score_data = calculate_score(answers, submission.answers)
+        
+        submission_data = {
+            "test_id": str(submission.test_id),
+            "user_answers": submission.answers,
+            "score": score_data,
+            "submitted_at": current_time
+        }
 
-    submission_id: str = uuid.uuid4().hex[:8]
-    TEST_DB[submission.test_id]["submissions"][submission_id] = {
-        "user_answers": submission.answers,
-        "score": score_data,
-        "submitted_at": current_time
-    }
-    
-    return JSONResponse({
-        "score": score_data,
-        "submission_id": submission_id,
-        "message": "Ihr C-Test wurde erfolgreich abgesendet"
-    })
+        new_submission_entry = models.Submission(**submission_data)
+        db.add(new_submission_entry)
+        db.commit()
+        db.refresh(new_submission_entry)
+        return JSONResponse({
+            "score": score_data,
+            "submission_id": str(new_submission_entry.submission_id),
+            "message": "Ihr C-Test wurde erfolgreich abgesendet"
+        })
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=400,
+            detail=str(ve)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Submission rendering service error: " + str(e)
+        )
 
 
 def calculate_score(correct_answers: dict, user_answers: dict):
@@ -76,7 +89,7 @@ def calculate_score(correct_answers: dict, user_answers: dict):
     for position, user_input in user_answers.items():
         expected_answer = ""
         expected_length = "0"
-        answer_map = correct_answers.get(position)
+        answer_map = correct_answers.get(str(position))
         if answer_map:
             expected_answer = answer_map.get("answer", "")
             expected_length = answer_map.get("length", "0")
@@ -109,7 +122,7 @@ def calculate_score(correct_answers: dict, user_answers: dict):
 
 
 @submission_router.get("/results/{test_id}", response_class=HTMLResponse)
-async def get_results(request: Request, test_id: str):
+async def get_results(request: Request, test_id: str, db: Session = Depends(get_db)):
     """
     Displays all submissions for a given test.
 
@@ -120,17 +133,25 @@ async def get_results(request: Request, test_id: str):
     Returns:
         Renders results.html with all test submissions
     """
-    test = TEST_DB.get(test_id)
-    if not test:
-        raise HTTPException(status_code=404, detail="Test not found")
+    try:
+        test = db.query(models.CTest).filter(models.CTest.test_id == test_id).first()
+        if not test:
+            raise HTTPException(status_code=404, detail="Test not found")
 
-    submissions = test.get("submissions")
-    if not submissions:
-        raise HTTPException(status_code=404, detail="No submissions for this test")
+        submissions = test.submissions
+        submissions_length = sum(1 for _ in submissions)
+        if not submissions_length:
+            raise HTTPException(status_code=404, detail="No submissions for this test")
 
-    return templates.TemplateResponse("results.html", {
-        "request": request,
-        "test_id": test_id,
-        "submissions": submissions,
-        "test_data": test
-    })
+        return templates.TemplateResponse("results.html", {
+            "request": request,
+            "test_id": str(test_id),
+            "submissions": [str(uuid) for uuid in submissions],
+            "test_data": test
+        })
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Result calculation service error: " + str(e)
+        )

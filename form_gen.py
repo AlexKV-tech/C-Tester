@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse
 from templates import templates
-from database import TEST_DB, get_db
+from database import get_db
 from sqlalchemy.orm import Session
 import models
 
@@ -29,17 +29,10 @@ async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(g
 
     Raises:
         HTTPException: 500 if there is a server/database error.
-
-    Notes:
-        - `TEST_DB` is a placeholder for database logic.
-        - Blanks metadata is 1-indexed for frontend JavaScript compatibility.
     """
     try:
-        # Retrieve test data from mock database (replace with real DB query in production)
-        # test = TEST_DB.get(test_id)
         test = db.query(models.CTest).filter(models.CTest.test_id == test_id).first()
-        
-        if not test or test.created_at < datetime.now(timezone.utc):
+        if not test or test.expires_at < datetime.now(timezone.utc):
             return templates.TemplateResponse(
                 "expired.html",
                 {"request": request},
@@ -51,14 +44,13 @@ async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(g
             blank_id: blanks_info["length"] for blank_id, blanks_info in zip(test.answers.keys(), test.answers.values())
             }
 
-       
         return templates.TemplateResponse(
             "ctest_form.html",
             {
                 "request": request,
-                "test_id": test_id,
                 "ctest_text": test.ctest_text,
                 "blanks": blanks_metadata,
+                "test_id": str(test.test_id)
             }
         )
 
@@ -66,5 +58,5 @@ async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(g
        
         raise HTTPException(
             status_code=500,
-            detail="Test rendering service unavailable " + str(e)
+            detail="Test rendering service error: " + str(e)
         )

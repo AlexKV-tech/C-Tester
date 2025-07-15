@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 from typing import Dict
 from enum import Enum
 
@@ -10,6 +10,7 @@ class DifficultyLevel(str, Enum):
     easy = "easy"
     medium = "medium"
     hard = "hard"
+    
 
 
 class CTestTextInput(BaseModel):
@@ -28,6 +29,7 @@ class CTestTextInput(BaseModel):
     """
     text: str
     difficulty: DifficultyLevel
+    
 
 
 class CTestSubmission(BaseModel):
@@ -49,5 +51,6 @@ class CTestSubmission(BaseModel):
     test_id: str
     answers: Dict[int, str]
     original_text: str
-
     
+
+

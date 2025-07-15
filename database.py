@@ -1,5 +1,3 @@
-# During deployment, this will be replaced by a real database.
-TEST_DB = {}
 import sqlalchemy
 import sqlalchemy.ext.declarative as declarative
 import sqlalchemy.orm as orm

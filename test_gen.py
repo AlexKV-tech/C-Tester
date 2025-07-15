@@ -1,23 +1,17 @@
-import uuid
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Depends
-import sqlalchemy
 from sqlalchemy.orm import Session
 import spacy
-from database import TEST_DB, get_db
+from database import get_db
 from schemas import CTestTextInput
 import models
 
 generator_router = APIRouter()
-
-# Difficulty coefficients
 BLANK_COEFF = {
     "easy": 0.1,
     "medium": 0.4,
     "hard": 0.7
 }
-
-# Other constants
 MINIMAL_WORD_LENGTH = 2
 MINIMAL_TEXT_LENGTH = 3
 TARGET_POS = {"NOUN", "VERB", "ADJ", "ADV"}
@@ -99,35 +93,31 @@ async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_d
     """
     try:
         ctest_text, answers  = generate_ctest_unit(input.text, input.difficulty)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        created_at: datetime = datetime.now(timezone.utc)
+        expires_at: datetime = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
+        ctest_data = {
+            "ctest_text": ctest_text,
+            "created_at": created_at,
+            "expires_at": expires_at,
+            "answers": answers,
+            "original_text": input.text,
+        }
 
-    test_id: str = uuid.uuid4().hex[:8]
-    created_at: datetime = datetime.now(timezone.utc)
-    expires_at: datetime = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
-
-    db_entry = {
-        "ctest_text": ctest_text,
-        "created_at": created_at,
-        "expires_at": expires_at,
-        "answers": answers,
-        "original_text": input.text,
-    }
-    new_ctest_entry = models.CTest(**db_entry)
-    db.add(new_ctest_entry)
-    db.commit()
-    db.refresh(new_ctest_entry)
-    print(db.query(models.CTest).first().test_id)
-    TEST_DB[test_id] = {
-        "ctest_text": ctest_text,
-        "created_at": created_at,
-        "expires_at": expires_at,
-        "answers": answers,
-        "original_text": input.text,
-        "submissions": {}
-    }
-    
-    return {
-        "ctest_text": ctest_text,
-        "share_url": f"/test/{test_id}",
-    }
+        new_ctest_entry = models.CTest(**ctest_data)
+        db.add(new_ctest_entry)
+        db.commit()
+        db.refresh(new_ctest_entry)
+        return {
+            "ctest_text": ctest_text,
+            "share_url": f"/test/{new_ctest_entry.test_id}",
+        }
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=400,
+            detail=str(ve)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Test generation service error: " + str(e)
+        )
