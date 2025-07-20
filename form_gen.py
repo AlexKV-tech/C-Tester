@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from templates import templates
 from database import get_db
 from sqlalchemy.orm import Session
@@ -9,6 +9,23 @@ import models
 
 
 form_router = APIRouter()
+
+
+@form_router.post("/authorize/{test_id}")
+async def authorize_test(request: Request, test_id: str, code: str, db: Session = Depends(get_db)):
+    
+    otp_entry = db.query(models.CTest).filter_by(test_id=test_id).first()
+    if otp_entry and otp_entry.code == code:
+        request.session[f"authorized_for_{test_id}"] = True
+        return RedirectResponse(f"/test/{test_id}", status_code=302)
+    else:
+        return templates.TemplateResponse(
+            "authorize.html",
+            {"request": request, "test_id": test_id, "error": "Ungültiger Code"},
+            status_code=400,
+        )
+
+
 @form_router.get("/test/{test_id}", response_class=HTMLResponse)
 async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(get_db)):
     """
@@ -31,6 +48,8 @@ async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(g
         HTTPException: 500 if there is a server/database error.
     """
     try:
+        if not request.session.get(f"authorized_for_{test_id}"):
+            return RedirectResponse(f"/authorize/{test_id}", status_code=302)
         test = db.query(models.CTest).filter(models.CTest.test_id == test_id).first()
         if not test or test.expires_at < datetime.now(timezone.utc):
             return templates.TemplateResponse(

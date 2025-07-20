@@ -27,6 +27,7 @@ async function generateCTest() {
         document.getElementById("testLink").textContent = fullLink;
         document.getElementById("generatedLink").style.display = "block";
         document.getElementById("outputText").textContent = data.ctest_text;
+        document.getElementById("OTP").textContent = data.code;
 
     } catch (error) {
         console.error(error);

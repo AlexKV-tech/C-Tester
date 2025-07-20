@@ -5,6 +5,7 @@ import spacy
 from database import get_db
 from schemas import CTestTextInput
 import models
+import random
 
 generator_router = APIRouter()
 BLANK_COEFF = {
@@ -76,6 +77,8 @@ def generate_ctest_unit(text: str, difficulty: str) -> tuple[str, dict[int, dict
     ctest_output: str = "".join(ctest_chars)
     return ctest_output, answers
 
+def generate_otp():
+    return str(random.randint(100000, 999999))
 
 @generator_router.post("/generate")
 async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_db)) -> dict[str, str]:
@@ -95,12 +98,14 @@ async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_d
         ctest_text, answers  = generate_ctest_unit(input.text, input.difficulty)
         created_at: datetime = datetime.now(timezone.utc)
         expires_at: datetime = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
+        otp = generate_otp()
         ctest_data = {
             "ctest_text": ctest_text,
             "created_at": created_at,
             "expires_at": expires_at,
             "answers": answers,
             "original_text": input.text,
+            "code": otp
         }
 
         new_ctest_entry = models.CTest(**ctest_data)
@@ -109,7 +114,8 @@ async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_d
         db.refresh(new_ctest_entry)
         return {
             "ctest_text": ctest_text,
-            "share_url": f"/test/{new_ctest_entry.test_id}",
+            "share_url": f"/authorize/{new_ctest_entry.test_id}",
+            "code": otp
         }
     except ValueError as ve:
         raise HTTPException(
