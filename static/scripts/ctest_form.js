@@ -92,12 +92,12 @@ function submitAnswers(event) {
                     );
                 }
             } else {
-                showMessage(`Fehler beim Absenden: ${data.message || 'Unbekannter Fehler'}`, 'danger');
+                showMessage(`Fehler beim Absenden: ${data.detail || 'Unbekannter Fehler'}`, 'danger');
             }
         })
         .catch(error => {
             console.error(error);
-            showMessage('Fehler beim Absenden. Bitte versuchen Sie es erneut.', 'danger');
+            showMessage(data.detail, 'danger');
         })
         .finally(() => {
             submitBtn.textContent = 'Absenden';

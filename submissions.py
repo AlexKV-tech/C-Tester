@@ -59,9 +59,16 @@ async def submit_ctest(submission: CTestSubmission, db: Session = Depends(get_db
     except ValueError as ve:
         raise HTTPException(
             status_code=400,
-            detail=str(ve)
+            detail=str(ve),
+
         )
     except Exception as e:
+        if "duplicate key" in str(e.__cause__):
+            raise HTTPException(
+            status_code=409,
+            detail="Dieser Test wurde schon abgesendet"
+        )
+
         raise HTTPException(
             status_code=500,
             detail="Submission rendering service error: " + str(e)
