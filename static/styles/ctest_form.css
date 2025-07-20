@@ -62,3 +62,18 @@ body.light-mode .form-control {
     background-color: #fff;
     color: #212529;
 }
+
+.blank-box.is-correct {
+    border: 2px solid green;
+    background-color: #eaffea;
+}
+
+.blank-box.is-incorrect {
+    border: 2px solid red;
+    background-color: #ffeaea;
+}
+
+.feedback {
+    font-weight: bold;
+    font-size: 1.1em;
+}

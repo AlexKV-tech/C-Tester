@@ -88,8 +88,8 @@ async def generate_test_reply(input: CTestTextInput, db: Session = Depends(get_d
     Returns:
         Dictionary with:
             - ctest_text: C-Test with blanks
-            - link: Shareable test link
-            - answers: Answer key (for debug only)
+            - share_url: Shareable test link
+            
     """
     try:
         ctest_text, answers  = generate_ctest_unit(input.text, input.difficulty)

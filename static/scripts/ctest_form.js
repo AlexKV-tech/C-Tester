@@ -83,16 +83,67 @@ function submitAnswers(event) {
             const data = await response.json();
 
             if (response.ok) {
-                showMessage(data.message, 'success');
+                if (data.present) {
+                    showMessage("Dieser Test wurde bereits übermittelt. Änderungen sind nicht mehr möglich.", 'warning');
 
-                if (data.score && !data.found) {
+
+                    const submitBtn = document.getElementById('submitBtn');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Bereits gesendet';
+
+
+                    document.querySelectorAll('#ctestContainer input').forEach(input => {
+                        input.disabled = true;
+                    });
+                    return;
+                }
+                showMessage(data.message, 'success');
+                if (data.score) {
                     showMessage(
                         `Ergebnis: ${data.score.correct}/${data.score.total} richtig (${data.score.percentage}%)`,
                         'info'
                     );
                 }
+                const detailedResults = data.score.detailed_results;
+
+                // Loop through each blank and apply feedback
+                Object.keys(detailedResults).forEach(pos => {
+                    const entry = detailedResults[pos];
+
+                    // Query the corresponding input by name
+                    const input = document.querySelector(`input[name="blank_${pos}"]`);
+
+                    if (!input) {
+                        console.warn(`No input found for blank index ${pos}`);
+                        return;
+                    }
+
+                    // Disable the input after submission
+                    input.disabled = true;
+
+                    // Add CSS classes for visual feedback
+                    if (entry.is_correct) {
+                        input.classList.add('is-correct');
+                    } else {
+                        input.classList.add('is-incorrect');
+
+                        // Create a span with the correct answer
+                        const correctionSpan = document.createElement('span');
+                        correctionSpan.classList.add('feedback');
+                        correctionSpan.innerHTML = ` ❌ <span class="correct-answer">(${entry.expected_answer})</span>`;
+                        correctionSpan.style.marginLeft = '0.5em';
+
+                        // Insert after the input
+                        input.insertAdjacentElement('afterend', correctionSpan);
+                    }
+                });
+
+
+
+
             } else {
-                showMessage(`Fehler beim Absenden: ${data.detail || 'Unbekannter Fehler'}`, 'danger');
+                showMessage(`Fehler beim Absenden: ${data.detail || 'Unbekannter Fehler'
+                    }`, 'danger');
             }
         })
         .catch(error => {

@@ -38,7 +38,7 @@ async def submit_ctest(submission: CTestSubmission, db: Session = Depends(get_db
         db_submission = db.query(models.Submission).filter(models.Submission.test_id == submission.test_id).first()
         if db_submission is not None:
             return JSONResponse({
-            "found": True,
+            "present": True,
             "score": db_submission.score,
             "submission_id": str(db_submission.submission_id),
             "message": "Ihr C-Test wurde schon abgesendet"
@@ -62,7 +62,7 @@ async def submit_ctest(submission: CTestSubmission, db: Session = Depends(get_db
         db.commit()
         db.refresh(new_submission_entry)
         return JSONResponse({
-            "found": False,
+            "present": False,
             "score": score_data,
             "submission_id": str(new_submission_entry.submission_id),
             "message": "Ihr C-Test wurde erfolgreich abgesendet"
