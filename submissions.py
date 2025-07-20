@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request, Depends
+from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from fastapi.responses import HTMLResponse, JSONResponse
 from templates import templates
@@ -34,24 +35,34 @@ async def submit_ctest(submission: CTestSubmission, db: Session = Depends(get_db
         
         if test.expires_at < current_time:
             raise HTTPException(status_code=410, detail="Test has expired")
-
+        db_submission = db.query(models.Submission).filter(models.Submission.test_id == submission.test_id).first()
+        if db_submission is not None:
+            return JSONResponse({
+            "found": True,
+            "score": db_submission.score,
+            "submission_id": str(db_submission.submission_id),
+            "message": "Ihr C-Test wurde schon abgesendet"
+            })
         answers: dict[int, dict[str, str]] = test.answers
         if not answers:
             raise HTTPException(status_code=404, detail="Answers not found")
         score_data = calculate_score(answers, submission.answers)
         
+
         submission_data = {
             "test_id": str(submission.test_id),
             "user_answers": submission.answers,
             "score": score_data,
             "submitted_at": current_time
         }
+        
 
         new_submission_entry = models.Submission(**submission_data)
         db.add(new_submission_entry)
         db.commit()
         db.refresh(new_submission_entry)
         return JSONResponse({
+            "found": False,
             "score": score_data,
             "submission_id": str(new_submission_entry.submission_id),
             "message": "Ihr C-Test wurde erfolgreich abgesendet"
@@ -63,11 +74,7 @@ async def submit_ctest(submission: CTestSubmission, db: Session = Depends(get_db
 
         )
     except Exception as e:
-        if "duplicate key" in str(e.__cause__):
-            raise HTTPException(
-            status_code=409,
-            detail="Dieser Test wurde schon abgesendet"
-        )
+        
 
         raise HTTPException(
             status_code=500,

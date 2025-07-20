@@ -85,7 +85,7 @@ function submitAnswers(event) {
             if (response.ok) {
                 showMessage(data.message, 'success');
 
-                if (data.score) {
+                if (data.score && !data.found) {
                     showMessage(
                         `Ergebnis: ${data.score.correct}/${data.score.total} richtig (${data.score.percentage}%)`,
                         'info'
