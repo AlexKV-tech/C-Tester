@@ -8,7 +8,7 @@ async function generateCTest() {
     }
 
     try {
-        const response = await fetch("/generate", {
+        const response = await fetch("/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: input, difficulty: selectedDifficulty })
@@ -44,7 +44,7 @@ async function downloadPDF() {
     }
 
     try {
-        const response = await fetch("/generate_pdf", {
+        const response = await fetch("/create_pdf", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

@@ -5,9 +5,13 @@ import submissions
 import form_gen
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
 from templates import templates
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app = FastAPI()
 app.add_middleware(
@@ -16,6 +20,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(pdf_gen.generator_router)
 app.include_router(test_gen.generator_router)

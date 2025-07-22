@@ -3,7 +3,7 @@ import tempfile
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fpdf import FPDF, XPos, YPos
-from test_gen import BLANK_SYMBOL, generate_ctest_unit
+from test_gen import BLANK_SYMBOL, create_ctest_unit
 from schemas import CTestTextInput
 
 FONT_PATH_REGULAR = "static/fonts/Tinos-Regular.ttf"
@@ -24,9 +24,9 @@ def format_blanks(text: str) -> str:
     """
     return text.replace(BLANK_SYMBOL, f"{BLANK_SYMBOL} ")
 
-def generate_pdf_test(ctest_text: str, orig_text: str, path: str) -> None:
+def create_pdf_test(ctest_text: str, orig_text: str, path: str) -> None:
     """
-    Generates a PDF document with the C-Test and its answer key.
+    creates a PDF document with the C-Test and its answer key.
 
     The PDF includes:
     - Page 1: C-Test with blanks.
@@ -64,15 +64,15 @@ def generate_pdf_test(ctest_text: str, orig_text: str, path: str) -> None:
 
         pdf.output(path)
     except Exception as e:
-        raise IOError(f"Failed to generate PDF: {e}")
+        raise IOError(f"Failed to create PDF: {e}")
 
-@generator_router.post("/generate_pdf", response_class=HTMLResponse)
+@generator_router.post("/create_pdf", response_class=HTMLResponse)
 async def get_pdf_reply(input: CTestTextInput, background_tasks: BackgroundTasks):
     """
     Creates a downloadable PDF C-Test from user input.
 
     This endpoint:
-    - Generates a C-Test from the original source text.
+    - creates a C-Test from the original source text.
     - Writes it to a temporary PDF file.
     - Serves the file to the user.
     - Deletes the temporary file in the background.
@@ -91,13 +91,13 @@ async def get_pdf_reply(input: CTestTextInput, background_tasks: BackgroundTasks
         if not input.text.strip():
             raise HTTPException(status_code=400, detail="Input text is required.")
 
-        ctest_text, _ = generate_ctest_unit(input.text, input.difficulty)
+        ctest_text, _ = create_ctest_unit(input.text, input.difficulty)
 
     
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
         tmp_file.close()
 
-        generate_pdf_test(ctest_text, input.text, tmp_file.name)
+        create_pdf_test(ctest_text, input.text, tmp_file.name)
         background_tasks.add_task(os.remove, tmp_file.name)
 
         return FileResponse(tmp_file.name, filename="printable.pdf", media_type="application/pdf")
@@ -106,4 +106,4 @@ async def get_pdf_reply(input: CTestTextInput, background_tasks: BackgroundTasks
         raise HTTPException(status_code=400, detail=str(ve))
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to generate PDF. " + str(e))
+        raise HTTPException(status_code=500, detail="Failed to create PDF. " + str(e))

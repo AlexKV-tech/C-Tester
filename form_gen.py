@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, Form, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from templates import templates
 from database import get_db
@@ -10,17 +10,20 @@ import models
 
 form_router = APIRouter()
 
+@form_router.get("/authorize/{test_id}", response_class=HTMLResponse)
+async def get_test_auth(request: Request, test_id: str):
+    return templates.TemplateResponse("form_auth.html", {"request": request, "test_id": test_id, "error": None})
 
 @form_router.post("/authorize/{test_id}")
-async def authorize_test(request: Request, test_id: str, code: str, db: Session = Depends(get_db)):
-    
+async def redirect_form_auth(request: Request, test_id: str, code: str = Form(...), db: Session = Depends(get_db)):
+    print("HUI")
     otp_entry = db.query(models.CTest).filter_by(test_id=test_id).first()
     if otp_entry and otp_entry.code == code:
         request.session[f"authorized_for_{test_id}"] = True
         return RedirectResponse(f"/test/{test_id}", status_code=302)
     else:
         return templates.TemplateResponse(
-            "authorize.html",
+            "form_auth.html",
             {"request": request, "test_id": test_id, "error": "Ungültiger Code"},
             status_code=400,
         )
