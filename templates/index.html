@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css"
         rel="stylesheet">
-    <link href="{{ url_for('static', path='/styles/ctest_gen.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', path='/styles/styles.css') }}" rel="stylesheet">
 </head>
 
 <body>
@@ -122,10 +122,21 @@
     <div id="generatedLink" class="mt-4" style="display: none;">
         <div class="alert alert-success fade-in">
             <i class="bi bi-link-45deg me-2"></i>
-            Ihr C-Test-Link:
-            <a id="testLink" href="#" class="text-white fw-bold" target="_blank"></a>
-            Passwort für Student:
-            <a id="OTP" class="text-white fw-bold" target="_blank"></a>
+            Student:in C-Test-Link:
+            <a id="testLink" href="#" class="text-white fw-bold" target="_blank" rel="noopener noreferrer"></a>
+            Lehrer:in C-Test-Link:
+            <a id="resLink" href="#" class="text-white fw-bold" target="_blank" rel="noopener noreferrer"></a>
+
+        </div>
+    </div>
+    <div id="generatedCodes" class="mt-4" style="display: none;">
+        <div class="alert alert-success fade-in">
+            <i class="bi bi-upc"></i>
+
+            Code für Student:in:
+            <a id="studCode" class="text-white fw-bold"></a>
+            Code für Lehrer:in:
+            <a id="teachCode" class="text-white fw-bold"></a>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>

@@ -77,7 +77,7 @@ def create_ctest_unit(text: str, difficulty: str) -> tuple[str, dict[int, dict[s
     ctest_output: str = "".join(ctest_chars)
     return ctest_output, answers
 
-def create_otp():
+def generate_code():
     return str(random.randint(100000, 999999))
 
 @generator_router.post("/create")
@@ -98,14 +98,16 @@ async def create_test_reply(input: CTestTextInput, db: Session = Depends(get_db)
         ctest_text, answers  = create_ctest_unit(input.text, input.difficulty)
         created_at: datetime = datetime.now(timezone.utc)
         expires_at: datetime = created_at + timedelta(days=TEST_EXPIRATION_DAYS)
-        otp = create_otp()
+        student_code = generate_code()
+        teacher_code = generate_code()
         ctest_data = {
             "ctest_text": ctest_text,
             "created_at": created_at,
             "expires_at": expires_at,
             "answers": answers,
             "original_text": input.text,
-            "code": otp
+            "student_code": student_code,
+            "teacher_code": teacher_code
         }
 
         new_ctest_entry = models.CTest(**ctest_data)
@@ -115,7 +117,9 @@ async def create_test_reply(input: CTestTextInput, db: Session = Depends(get_db)
         return {
             "ctest_text": ctest_text,
             "share_url": f"/test/{new_ctest_entry.test_id}",
-            "code": otp
+            "results_url": f"/results/{new_ctest_entry.test_id}",
+            "student_code": student_code,
+            "teacher_code": teacher_code
         }
     except ValueError as ve:
         raise HTTPException(

@@ -1,3 +1,10 @@
+body {
+    font-family: ui-monospace, 'Courier New', monospace;
+    background-color: #1F1B24;
+    color: #ffffff;
+    min-height: 100vh;
+}
+
 body.light-mode {
     background-color: #ffffff;
     color: #000000;
@@ -6,7 +13,8 @@ body.light-mode {
 body.light-mode .form-control,
 body.light-mode .output-section,
 body.light-mode .card,
-body.light-mode .card-header {
+body.light-mode .card-header,
+body.light-mode .auth-container {
     background-color: #f8f9fa;
     color: #000000;
     border-color: #ccc;
@@ -26,19 +34,31 @@ body.light-mode .btn-primary:hover {
     border-color: #0a58ca;
 }
 
+body.light-mode .btn-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.5);
+}
+
 body.light-mode .text-muted {
     color: #6c757d !important;
 }
 
-body {
-    font-family: ui-monospace, 'Courier New', monospace;
-    background-color: #1F1B24;
+body:not(.light-mode) h1,
+body:not(.light-mode) h2,
+body:not(.light-mode) h3 {
     color: #ffffff;
-    min-height: 100vh;
 }
 
 .container {
     max-width: 900px;
+}
+
+.auth-container {
+    max-width: 400px;
+    margin: 6rem auto;
+    padding: 2rem;
+    background: #2d2834;
+    border-radius: 0.5rem;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
 .form-control {
@@ -53,6 +73,11 @@ body {
     border-color: #6c757d;
     box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
     color: #ffffff;
+}
+
+body.light-mode .form-control:focus {
+    background-color: #f8f9fa;
+    color: #000000;
 }
 
 .form-control::placeholder {
@@ -96,12 +121,6 @@ body {
     color: #ffffff;
 }
 
-body:not(.light-mode) h1,
-body:not(.light-mode) h2,
-body:not(.light-mode) h3 {
-    color: #ffffff;
-}
-
 .text-muted {
     color: #adb5bd !important;
 }
@@ -120,6 +139,65 @@ body:not(.light-mode) h3 {
     height: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
+}
+
+.ctest-word {
+    margin-right: 0.5rem;
+}
+
+input.ctest-input {
+    width: 100px;
+    background-color: #2d2834;
+    border: 1px solid #555;
+    color: #fff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+input.ctest-input:focus {
+    outline: none;
+    border-color: #6c757d;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+}
+
+.blank-box {
+    width: 1.5em;
+    text-align: center;
+    border: none;
+    border-bottom: 1px solid #999;
+    margin: 0 1px;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+}
+
+.blank-box:focus {
+    outline: none;
+    border-bottom: 2px solid #555;
+}
+
+.blank-box.is-correct {
+    border: 2px solid green;
+    background-color: #eaffea;
+}
+
+.blank-box.is-incorrect {
+    border: 2px solid red;
+    background-color: #ffeaea;
+}
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.alert {
+    margin-top: 1rem;
+}
+
+.feedback {
+    font-weight: bold;
+    font-size: 1.1em;
 }
 
 .fade-in {

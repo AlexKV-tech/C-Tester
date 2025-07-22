@@ -10,15 +10,15 @@ import models
 
 form_router = APIRouter()
 
-@form_router.get("/authorize/{test_id}", response_class=HTMLResponse)
+@form_router.get("/student_authorize/{test_id}", response_class=HTMLResponse)
 async def get_test_auth(request: Request, test_id: str):
     return templates.TemplateResponse("form_auth.html", {"request": request, "test_id": test_id, "error": None})
 
-@form_router.post("/authorize/{test_id}")
+@form_router.post("/student_authorize/{test_id}")
 async def redirect_form_auth(request: Request, test_id: str, code: str = Form(...), db: Session = Depends(get_db)):
-    print("HUI")
+    
     otp_entry = db.query(models.CTest).filter_by(test_id=test_id).first()
-    if otp_entry and otp_entry.code == code:
+    if otp_entry and otp_entry.student_code == code:
         request.session[f"authorized_for_{test_id}"] = True
         return RedirectResponse(f"/test/{test_id}", status_code=302)
     else:
@@ -52,7 +52,7 @@ async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(g
     """
     try:
         if not request.session.get(f"authorized_for_{test_id}"):
-            return RedirectResponse(f"/authorize/{test_id}", status_code=302)
+            return RedirectResponse(f"/student_authorize/{test_id}", status_code=302)
         test = db.query(models.CTest).filter(models.CTest.test_id == test_id).first()
         if not test or test.expires_at < datetime.now(timezone.utc):
             return templates.TemplateResponse(

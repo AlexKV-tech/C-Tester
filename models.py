@@ -12,7 +12,8 @@ class CTest(database.Base):
     expires_at  = sqlalchemy.Column("expires_at",sqlalchemy.DateTime(timezone=True), default=datetime.now(timezone.utc)+timedelta(days=7))
     answers = sqlalchemy.Column("answers", sqlalchemy.JSON,nullable=False)
     submissions = sqlalchemy.Column("submissions", sqlalchemy.ARRAY(sqlalchemy.Uuid(as_uuid=True), zero_indexes=True), default=[])
-    code = sqlalchemy.Column(sqlalchemy.String(6), nullable=False)
+    student_code = sqlalchemy.Column(sqlalchemy.String(6), nullable=False)
+    teacher_code = sqlalchemy.Column(sqlalchemy.String(6), nullable=False)
 
 
 class Submission(database.Base):

@@ -20,14 +20,19 @@ async function generateCTest() {
             throw new Error(data?.message || "Fehler bei der Generierung des C-Tests");
         }
 
-        const fullLink = window.location.origin + data.share_url;
+        const fullTestLink = window.location.origin + data.share_url;
+        const fullResLink = window.location.origin + data.results_url;
 
 
-        document.getElementById("testLink").href = fullLink;
-        document.getElementById("testLink").textContent = fullLink;
+        document.getElementById("testLink").href = fullTestLink;
+        document.getElementById("testLink").textContent = fullTestLink;
+        document.getElementById("resLink").href = fullResLink;
+        document.getElementById("resLink").textContent = fullResLink;
         document.getElementById("generatedLink").style.display = "block";
         document.getElementById("outputText").textContent = data.ctest_text;
-        document.getElementById("OTP").textContent = data.code;
+        document.getElementById("studCode").textContent = data.student_code;
+        document.getElementById("teachCode").textContent = data.teacher_code;
+        document.getElementById("generatedCodes").style.display = "block";
 
     } catch (error) {
         console.error(error);
