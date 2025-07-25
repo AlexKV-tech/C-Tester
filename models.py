@@ -20,7 +20,7 @@ class Submission(database.Base):
     __tablename__ = "submissions"
     submission_id = sqlalchemy.Column("submission_id", sqlalchemy.Uuid(as_uuid=True), unique=True, primary_key=True, default=uuid.uuid4)
     test_id = sqlalchemy.Column("test_id", sqlalchemy.Uuid(as_uuid=True), unique=True, nullable=False)
-    user_answers = sqlalchemy.Column("user_answers", sqlalchemy.JSON, nullable=False)
+    user_answers = sqlalchemy.Column("user_answers", sqlalchemy.JSON, nullable=False) # ? - included in score(detailed results)
     score = sqlalchemy.Column("score", sqlalchemy.JSON, nullable=False)
     submitted_at = sqlalchemy.Column("submitted_at",sqlalchemy.DateTime(timezone=True), default=datetime.now(timezone.utc))
     

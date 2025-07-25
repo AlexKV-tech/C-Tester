@@ -135,37 +135,3 @@ def calculate_score(correct_answers: dict, user_answers: dict):
     }
 
 
-@submission_router.get("/results/{test_id}", response_class=HTMLResponse)
-async def get_results(request: Request, test_id: str, db: Session = Depends(get_db)):
-    """
-    Displays all submissions for a given test.
-
-    Args:
-        request: FastAPI request
-        test_id: ID of the test
-
-    Returns:
-        Renders results.html with all test submissions
-    """
-    try:
-        test = db.query(models.CTest).filter(models.CTest.test_id == test_id).first()
-        if not test:
-            raise HTTPException(status_code=404, detail="Test not found")
-
-        submissions = test.submissions
-        submissions_length = sum(1 for _ in submissions)
-        if not submissions_length:
-            raise HTTPException(status_code=404, detail="No submissions for this test")
-
-        return templates.TemplateResponse("results.html", {
-            "request": request,
-            "test_id": str(test_id),
-            "submissions": [str(uuid) for uuid in submissions],
-            "test_data": test
-        })
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Result calculation service error: " + str(e)
-        )

@@ -3,7 +3,7 @@ import tempfile
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fpdf import FPDF, XPos, YPos
-from test_gen import BLANK_SYMBOL, create_ctest_unit
+from test import BLANK_SYMBOL, create_ctest_unit
 from schemas import CTestTextInput
 
 FONT_PATH_REGULAR = "static/fonts/Tinos-Regular.ttf"

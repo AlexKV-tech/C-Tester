@@ -10,7 +10,6 @@
 </head>
 
 <body>
-
     <div class="container py-5">
         <div>
             <button id="themeToggle" class="btn btn-outline-light btn-sm">
@@ -32,7 +31,7 @@
         const answersMap = {{ blanks | tojson | safe }};
         const testId = "{{ test_id }}";
     </script>
-    <script src="{{ url_for('static', path='/scripts/ctest_form.js') }}"></script>
+    <script src="{{ url_for('static', path='/scripts/form.js') }}"></script>
     <script src="{{ url_for('static', path='/scripts/theme_switch.js') }}"></script>
 </body>
 

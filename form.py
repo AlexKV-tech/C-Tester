@@ -11,19 +11,18 @@ import models
 form_router = APIRouter()
 
 @form_router.get("/student_authorize/{test_id}", response_class=HTMLResponse)
-async def get_test_auth(request: Request, test_id: str):
-    return templates.TemplateResponse("form_auth.html", {"request": request, "test_id": test_id, "error": None})
+async def get_form_auth(request: Request, test_id: str):
+    return templates.TemplateResponse("auth.html", {"request": request, "test_id": test_id, "error": None})
 
 @form_router.post("/student_authorize/{test_id}")
 async def redirect_form_auth(request: Request, test_id: str, code: str = Form(...), db: Session = Depends(get_db)):
-    
     otp_entry = db.query(models.CTest).filter_by(test_id=test_id).first()
     if otp_entry and otp_entry.student_code == code:
-        request.session[f"authorized_for_{test_id}"] = True
+        request.session[f"test_auth_{test_id}"] = True
         return RedirectResponse(f"/test/{test_id}", status_code=302)
     else:
         return templates.TemplateResponse(
-            "form_auth.html",
+            "auth.html",
             {"request": request, "test_id": test_id, "error": "Ungültiger Code"},
             status_code=400,
         )
@@ -44,14 +43,14 @@ async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(g
 
     Returns:
         HTMLResponse:
-            - 200 with ctest_form.html if test is active.
+            - 200 with test.html if test is active.
             - 410 with expired.html if test is missing or expired.
 
     Raises:
         HTTPException: 500 if there is a server/database error.
     """
     try:
-        if not request.session.get(f"authorized_for_{test_id}"):
+        if not request.session.get(f"test_auth_{test_id}"):
             return RedirectResponse(f"/student_authorize/{test_id}", status_code=302)
         test = db.query(models.CTest).filter(models.CTest.test_id == test_id).first()
         if not test or test.expires_at < datetime.now(timezone.utc):
@@ -67,7 +66,7 @@ async def get_ctest_form(request: Request, test_id: str, db: Session = Depends(g
             }
 
         return templates.TemplateResponse(
-            "ctest_form.html",
+            "form.html",
             {
                 "request": request,
                 "ctest_text": test.ctest_text,

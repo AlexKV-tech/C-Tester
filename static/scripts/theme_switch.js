@@ -23,7 +23,6 @@ if (savedTheme) {
     applyTheme(prefersLight ? "light" : "dark");
 }
 
-
 toggleButton.addEventListener("click", () => {
     const isCurrentlyLight = document.body.classList.contains("light-mode");
     const newTheme = isCurrentlyLight ? "dark" : "light";

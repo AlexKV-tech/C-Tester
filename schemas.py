@@ -44,7 +44,7 @@ class CTestSubmission(BaseModel):
     Example:
         >>> CTestSubmission(
         ...     test_id="ct_12345",
-        ...     answers={1: "quick", 2: "fox"},
+        ...     answers={0: "quick", 1: "fox"},
         ...     original_text="The quick brown fox jumps over the lazy dog."
         ... )
     """
