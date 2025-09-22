@@ -12,6 +12,6 @@ Provides:
 - Database connection management
 """
 
-DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:1410@localhost:5432/db")
+DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:1234@localhost:5432/db")
 
 
