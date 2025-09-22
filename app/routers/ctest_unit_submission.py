@@ -73,7 +73,7 @@ async def submit_ctest(submission: Submission, db: Session = Depends(get_db)) ->
             "score_data": score_data,
             "submitted_at": current_time
         }
-        new_submission_entry = Submission(**submission_data)
+        new_submission_entry = dbSubmission(**submission_data)
         db.add(new_submission_entry)
         db.commit()
         db.refresh(new_submission_entry)
