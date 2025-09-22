@@ -1,7 +1,18 @@
-from . import database
-import backend.database_services.models
+from app.core.config import DB_URL
 
-"""Database table initialization utility."""
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+
+
+engine = create_engine(DB_URL)
+
+# Session factory for creating individual database sessions
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base class for all ORM models to inherit from
+Base = declarative_base()
 
 def add_tables():
     """
@@ -18,4 +29,4 @@ def add_tables():
     - Only creates tables that don't already exist
     - Requires proper database connection configuration
     """
-    return database.Base.metadata.create_all(bind=database.engine)
+    return Base.metadata.create_all(bind=engine)

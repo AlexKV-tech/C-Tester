@@ -1,17 +1,21 @@
+from app.db.database import add_tables
+from app.routers.ctest_pdf_generator import pdf_generator_router
+from app.routers.ctest_unit_generator import ctest_generator_router
+from app.routers.ctest_unit_submission import submission_router
+from app.routers.ctest_unit_form import form_router
+from app.routers.ctest_unit_result import results_router
+from app.routers.ctest_mainpage import mainpage_router
+from app.dependencies import templates
+
 from fastapi.responses import HTMLResponse
-import backend.test_generation.pdf_ctest_gen as pdf_ctest_gen
-import backend.test_generation.ctest_gen as ctest_gen
-import backend.user_handling.ctest_submissions as submissions
-import backend.user_handling.ctest_form as form
-import backend.user_handling.ctest_results as results
-from backend.database_services.services import add_tables
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
-from backend.app_services import templates
 import os
 from dotenv import load_dotenv
+
+
 
 """
 C-Test Language Application - FastAPI Main Configuration
@@ -60,47 +64,36 @@ app.mount(
 )
 
 app.include_router(
-    pdf_ctest_gen.pdf_generator_router,
+    pdf_generator_router,
     tags=["PDF Generation"],
     prefix="/api" 
 )
 app.include_router(
-    ctest_gen.ctest_generator_router,
+    ctest_generator_router,
     tags=["Test Generation"],
     prefix="/api" 
 )
 app.include_router(
-    submissions.submission_router,
+    submission_router,
     tags=["Submissions"],
     prefix="/api" 
 )
 app.include_router(
-    form.form_router,
+    form_router,
     tags=["Student Interface"],
     prefix="/api" 
 )
 app.include_router(
-    results.results_router,
+    results_router,
     tags=["Teacher Interface"],
     prefix="/api" 
 )
+app.include_router(
+    mainpage_router,
+    tags=["Homepage"]
+)
 
-@app.get("/", response_class=HTMLResponse)
-async def serve_home(request: Request):
-    """
-    Serves the application's main entry point.
 
-    Args:
-        request (Request): Incoming FastAPI request object
-
-    Returns:
-        TemplateResponse: Rendered HTML template for the main interface
-
-    Notes:
-        - Uses Jinja2 template located at frontend/templates/ctest-mainpage.html
-        - Automatically injects request context into template
-    """
-    return templates.templates.TemplateResponse("ctest-mainpage.html", {"request": request})
 @app.on_event("startup")
 async def on_startup():
     print("Creating tables if they do not exist")

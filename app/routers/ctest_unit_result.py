@@ -1,9 +1,14 @@
+from app.models.ctest import CTest
+from app.models.submission import Submission
+from app.dependencies import get_db, templates
+
+
 from fastapi import APIRouter, Form, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
-from backend.app_services.templates import templates
-from backend.database_services.database import get_db
 from sqlalchemy.orm import Session
-import backend.database_services.models as models
+
+
+
 
 """FastAPI router for handling C-Test results authorization and display."""
 
@@ -46,7 +51,7 @@ async def redirect_res_auth(request: Request, ctest_id: str, code: str = Form(..
         - Sets session flag on successful authorization
         - Returns 400 status for invalid codes
     """
-    otp_entry = db.query(models.CTest).filter_by(ctest_id=ctest_id).first()
+    otp_entry = db.query(CTest).filter_by(ctest_id=ctest_id).first()
     if otp_entry and otp_entry.teacher_code == code:
         request.session[f"/api/res_auth_{ctest_id}"] = True
         return RedirectResponse(f"/api/results/{ctest_id}", status_code=302)
@@ -84,8 +89,8 @@ async def get_results(request: Request, ctest_id: str, db: Session = Depends(get
     try:
         if not request.session.get(f"/api/res_auth_{ctest_id}"):
             return RedirectResponse(f"/api/results_authorize/{ctest_id}", status_code=302)
-        db_submission = db.query(models.Submission).filter(models.Submission.ctest_id == ctest_id).first()
-        db_test = db.query(models.CTest).filter(models.CTest.ctest_id == ctest_id).first()
+        db_submission = db.query(Submission).filter(Submission.ctest_id == ctest_id).first()
+        db_test = db.query(CTest).filter(CTest.id == ctest_id).first()
         if not db_submission or not db_test:
             return templates.TemplateResponse(
                 "not-found.html",

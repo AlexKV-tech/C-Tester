@@ -1,10 +1,11 @@
+from app.models.ctest import CTest
+from app.dependencies import get_db, templates
+
 from datetime import datetime, timezone
 from fastapi import APIRouter, Form, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
-from backend.app_services.templates import templates
-from backend.database_services.database import get_db
 from sqlalchemy.orm import Session
-import backend.database_services.models as models
+
 
 """FastAPI router for student authentication and C-Test form handling."""
 
@@ -48,7 +49,7 @@ async def redirect_form_auth(request: Request, ctest_id: str, code: str = Form(.
         - Sets session authentication flag if successful
         - Maintains test context during redirects
     """
-    otp_entry = db.query(models.CTest).filter_by(ctest_id=ctest_id).first()
+    otp_entry = db.query(CTest).filter_by(ctest_id=ctest_id).first()
     if otp_entry and otp_entry.student_code == code:
         request.session[f"/api/ctest_auth_{ctest_id}"] = True
         return RedirectResponse(f"/api/ctest/{ctest_id}", status_code=302)
@@ -87,7 +88,7 @@ async def get_ctest_form(request: Request, ctest_id: str, db: Session = Depends(
     try:
         if not request.session.get(f"/api/ctest_auth_{ctest_id}"):
             return RedirectResponse(f"/api/student_authorize/{ctest_id}", status_code=302)
-        test = db.query(models.CTest).filter(models.CTest.ctest_id == ctest_id).first()
+        test = db.query(CTest).filter(CTest.ctest_id == ctest_id).first()
         if not test or test.expires_at < datetime.now(timezone.utc):
             return templates.TemplateResponse(
                 "not-found.html",
